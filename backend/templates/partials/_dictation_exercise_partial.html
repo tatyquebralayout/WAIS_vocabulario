@@ -1,0 +1,12 @@
+<div id="dictation-exercise-content" style="margin-top: 20px; padding: 20px; background-color: #e0f7fa; border-radius: 8px;">
+    <h3>Exercício de Ditado</h3>
+    <p>Ouça a palavra e digite o que você ouviu.</p>
+    <button type="button" id="play-dictation-audio-btn" aria-label="Ouvir a palavra para o ditado">Ouvir Palavra 🔊</button>
+    <audio id="dictation-hidden-audio" src="" class="hidden"></audio>
+    <div>
+        <label for="dictation-input" style="display:block; margin-top:10px; margin-bottom:5px;">Sua Resposta:</label>
+        <input type="text" id="dictation-input" placeholder="Digite a palavra ouvida">
+    </div>
+    <button type="button" id="submit-dictation-btn" style="margin-top:10px;">Verificar Ditado</button>
+    <p id="dictation-feedback" class="status-message hidden" style="margin-top: 15px;"></p>
+</div> 

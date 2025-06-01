@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Vocabulário Adaptativo</title>
+    <!-- Adicionar Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Adicionar SortableJS via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f0f0; color: #121212; margin: 0; padding: 10px; }
+        .container { max-width: 800px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #333; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], input[type="password"], input[type="submit"], button {
+            width: calc(100% - 22px); /* Full width minus padding and border */
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        button, input[type="submit"] { cursor: pointer; background-color: #0056b3; color: white; border: none; width: auto; padding: 10px 15px; }
+        button:hover, input[type="submit"]:hover { background-color: #004080; }
+        .admin-button { background-color: #d9534f; }
+        .admin-button:hover { background-color: #c9302c; }
+        #word-display, #exercise-submission-section, .auth-form { background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #eee; }
+        #word-image { max-width: 100%; border-radius: 4px; margin-top: 10px; }
+        .hidden { display: none; }
+        .status-message { padding: 10px; margin-top: 10px; border-radius: 4px; text-align: center; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #cce5ff; color: #004085; }
+        .auth-container { margin-bottom: 20px; }
+        .auth-container form { margin-bottom: 10px; }
+        hr { margin: 25px 0; }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Programa de Vocabulário Adaptativo</h1>
+        <div id="status-area" class="status-message hidden"></div>
+
+        <!-- Seção de Autenticação -->
+        <div id="auth-section">
+            <div id="login-form-container" class="auth-container">
+                <h2>Login</h2>
+                <form id="login-form" class="auth-form">
+                    <div>
+                        <label for="login-username">Usuário:</label>
+                        <input type="text" id="login-username" required>
+                    </div>
+                    <div>
+                        <label for="login-password">Senha:</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit">Entrar</button>
+                </form>
+                <p>Não tem uma conta? <button type="button" id="show-register-btn">Registre-se</button></p>
+            </div>
+
+            <div id="register-form-container" class="auth-container hidden">
+                <h2>Registro</h2>
+                <form id="register-form" class="auth-form">
+                    <div>
+                        <label for="register-username">Usuário:</label>
+                        <input type="text" id="register-username" required>
+                    </div>
+                    <div>
+                        <label for="register-password">Senha:</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <button type="submit">Registrar</button>
+                </form>
+                <p>Já tem uma conta? <button type="button" id="show-login-btn">Login</button></p>
+            </div>
+        </div>
+
+        <!-- Seção do Usuário Logado -->
+        <div id="user-logged-in-section" class="hidden">
+            <p>Logado como: <strong id="logged-in-username"></strong> 
+                <button type="button" id="show-progress-btn" style="margin-left: 10px;">Meu Progresso</button>
+                <button type="button" id="logout-btn" style="margin-left: 10px;">Sair</button>
+            </p>
+            <hr>
+            <button type="button" id="next-exercise-btn">Próximo Exercício (Recomendado)</button>
+            <button type="button" id="start-drag-drop-exercise-btn" style="margin-left: 10px; background-color: #4caf50;">Praticar Pares (Arrastar)</button>
+        </div>
+        
+        <!-- Seção de Busca de Palavra (Pode ser escondida quando o progresso for exibido) -->
+        <div id="word-interaction-section">
+            <hr>
+            <h2>Buscar Palavra Manualmente (Público)</h2>
+            <form id="search-form">
+                <input type="text" id="word-input" aria-label="Digite a palavra que deseja buscar" placeholder="Digite a palavra">
+                <button type="submit">Buscar</button>
+            </form>
+
+            <div id="word-display" class="hidden">
+                <h2 id="word-title"></h2>
+                <p><strong>Definição:</strong> <span id="word-definition"></span></p>
+                <img id="word-image" src="" alt="">
+                <div style="margin-top: 10px;">
+                    <button type="button" id="play-audio-btn" aria-label="Ouvir a pronúncia da palavra">Ouvir 🔊</button>
+                    <audio id="word-audio" src=""></audio>
+                </div>
+                <div id="practice-mcq-section" class="hidden" style="margin-top: 15px;">
+                    <button type="button" id="start-mcq-btn">Praticar Múltipla Escolha com esta Palavra</button>
+                </div>
+                <div id="practice-dictation-section" class="hidden" style="margin-top: 10px;">
+                    <button type="button" id="start-dictation-btn">Praticar Ditado com esta Palavra</button>
+                </div>
+            </div>
+
+            <div id="dictation-exercise-section" class="hidden" style="margin-top: 20px; padding: 20px; background-color: #e0f7fa; border-radius: 8px;">
+                <h3>Exercício de Ditado</h3>
+                <p>Ouça a palavra e digite o que você ouviu.</p>
+                <button type="button" id="play-dictation-audio-btn" aria-label="Ouvir a palavra para o ditado">Ouvir Palavra 🔊</button>
+                <audio id="dictation-hidden-audio" src="" class="hidden"></audio> 
+                <div>
+                    <label for="dictation-input" style="display:block; margin-top:10px; margin-bottom:5px;">Sua Resposta:</label>
+                    <input type="text" id="dictation-input" placeholder="Digite a palavra ouvida">
+                </div>
+                <button type="button" id="submit-dictation-btn" style="margin-top:10px;">Verificar Ditado</button>
+                <p id="dictation-feedback" class="status-message hidden" style="margin-top: 15px;"></p>
+            </div>
+
+            <!-- Nova Seção para Arrastar e Soltar -->
+            <div id="drag-drop-exercise-section" class="hidden" style="margin-top: 20px; padding: 20px; background-color: #fff9c4; border-radius: 8px;">
+                <h3 id="drag-drop-instruction"></h3>
+                <div style="display: flex; justify-content: space-between; margin-top:15px;">
+                    <div id="draggable-items-pool" style="width: 48%; border: 1px solid #ccc; padding: 10px; min-height: 150px; background-color: #f1f8e9;">
+                        <h4>Definições (Arraste daqui):</h4>
+                        <!-- Itens arrastáveis (definições) serão inseridos aqui -->
+                    </div>
+                    <div id="drop-zones-container" style="width: 48%;">
+                        <h4>Palavras (Solte aqui):</h4>
+                        <!-- Zonas de soltar (palavras com caixas para as definições) serão inseridas aqui -->
+                    </div>
+                </div>
+                <button type="button" id="check-drag-drop-btn" style="margin-top:20px;">Verificar Pares</button>
+                <p id="drag-drop-feedback" class="status-message hidden" style="margin-top: 15px;"></p>
+            </div>
+
+            <div id="exercise-submission-section" class="hidden">
+                <h3>Submeter Resultado do Exercício</h3>
+                <p>Palavra: <strong id="exercise-word-text"></strong></p>
+                <div>
+                    <label for="accuracy-checkbox">Acertei?</label>
+                    <input type="checkbox" id="accuracy-checkbox" checked>
+                </div>
+                <div>
+                    <label for="time-taken-input">Tempo (segundos):</label>
+                    <input type="number" id="time-taken-input" value="5" min="1">
+                </div>
+                <button type="button" id="submit-exercise-result-btn">Enviar Resultado</button>
+            </div>
+            
+            <hr style="margin-top: 30px; margin-bottom: 20px;">
+            <div id="admin-section" class="hidden">
+                <h2>Controles Administrativos</h2>
+                <button type="button" id="train-model-btn" class="admin-button">Treinar Modelo de Dificuldade</button>
+            </div>
+        </div> <!-- Fim de word-interaction-section -->
+
+        <!-- Nova Seção para a Página de Progresso -->
+        <div id="progress-page-section" class="hidden" style="margin-top: 20px;">
+            <h2>Meu Progresso</h2>
+            <button type="button" id="back-to-main-view-btn" style="margin-bottom:15px;">Voltar</button>
+            <div id="progress-summary" style="padding: 15px; background-color: #f9f9f9; border-radius: 8px; margin-bottom:20px;">
+                <p><strong>Palavras Únicas Tentadas:</strong> <span id="total-words-attempted"></span></p>
+                <p><strong>Acurácia Geral:</strong> <span id="overall-accuracy"></span>%</p>
+                <p><strong>Tempo Médio por Tentativa:</strong> <span id="avg-time-per-attempt"></span> segundos</p>
+            </div>
+            <div id="progress-charts">
+                <h3>Tendência de Acurácia por Sessão</h3>
+                <canvas id="accuracy-trend-chart"></canvas>
+                <h3 style="margin-top:20px;">Palavras Praticadas ao Longo do Tempo</h3>
+                <canvas id="words-practiced-chart"></canvas>
+            </div>
+            <p id="progress-message" class="status-message hidden" style="margin-top: 15px;"></p>
+        </div>
+
+        <!-- Container para carregar parciais de exercícios -->
+        <div id="dynamic-exercise-container" class="hidden"></div>
+
+    </main>
+
+    <script>
+        // Variáveis de estado
+        let currentWordText = null;
+        let jwtToken = localStorage.getItem('jwtToken');
+
+        // Elementos da UI
+        const statusArea = document.getElementById('status-area');
+        const authSection = document.getElementById('auth-section');
+        const loginFormContainer = document.getElementById('login-form-container');
+        const registerFormContainer = document.getElementById('register-form-container');
+        const userLoggedInSection = document.getElementById('user-logged-in-section');
+        const loggedInUsernameEl = document.getElementById('logged-in-username');
+        
+        const wordDisplayDiv = document.getElementById('word-display');
+        const wordTitleEl = document.getElementById('word-title');
+        const wordDefinitionEl = document.getElementById('word-definition');
+        const wordImageEl = document.getElementById('word-image');
+        const wordAudioEl = document.getElementById('word-audio');
+        const playAudioBtn = document.getElementById('play-audio-btn');
+        
+        const exerciseSubmissionSection = document.getElementById('exercise-submission-section');
+        const exerciseWordTextEl = document.getElementById('exercise-word-text');
+        const adminSection = document.getElementById('admin-section'); // Para mostrar/esconder
+
+        // Elementos para Múltipla Escolha
+        const practiceDictationSection = document.getElementById('practice-dictation-section');
+        const startDictationBtn = document.getElementById('start-dictation-btn');
+        const dictationExerciseSection = document.getElementById('dictation-exercise-section');
+        const playDictationAudioBtn = document.getElementById('play-dictation-audio-btn');
+        const dictationHiddenAudioEl = document.getElementById('dictation-hidden-audio');
+        const dictationInputEl = document.getElementById('dictation-input');
+        const submitDictationBtn = document.getElementById('submit-dictation-btn');
+        const dictationFeedbackEl = document.getElementById('dictation-feedback');
+
+        // Elementos da Página de Progresso
+        const wordInteractionSection = document.getElementById('word-interaction-section');
+        const progressPageSection = document.getElementById('progress-page-section');
+        const showProgressBtn = document.getElementById('show-progress-btn');
+        const backToMainViewBtn = document.getElementById('back-to-main-view-btn');
+        const totalWordsAttemptedEl = document.getElementById('total-words-attempted');
+        const overallAccuracyEl = document.getElementById('overall-accuracy');
+        const avgTimePerAttemptEl = document.getElementById('avg-time-per-attempt');
+        const progressMessageEl = document.getElementById('progress-message');
+        const accuracyTrendChartCtx = document.getElementById('accuracy-trend-chart').getContext('2d');
+        const wordsPracticedChartCtx = document.getElementById('words-practiced-chart').getContext('2d');
+        let accuracyChartInstance = null;
+        let wordsPracticedChartInstance = null;
+
+        // Elementos para Arrastar e Soltar
+        const dragDropExerciseSection = document.getElementById('drag-drop-exercise-section');
+        const startDragDropExerciseBtn = document.getElementById('start-drag-drop-exercise-btn');
+        const dragDropInstructionEl = document.getElementById('drag-drop-instruction');
+        const draggableItemsPoolEl = document.getElementById('draggable-items-pool');
+        const dropZonesContainerEl = document.getElementById('drop-zones-container');
+        const checkDragDropBtn = document.getElementById('check-drag-drop-btn');
+        const dragDropFeedbackEl = document.getElementById('drag-drop-feedback');
+        let sortableInstances = []; // Para guardar instâncias de SortableJS e destruí-las se necessário
+        let currentDragDropExerciseData = null; // Para guardar os dados do exercício atual
+
+        let currentTargetWordId = null; // Para o exercício de múltipla escolha
+        let correctAnswerDefinition = ""; // Para feedback MCQ
+        let currentWordAudioUrl = ""; // Para o exercício de ditado
+
+        // Container para exercícios dinâmicos
+        const dynamicExerciseContainer = document.getElementById('dynamic-exercise-container');
+
+        // Elementos para Múltipla Escolha (Botão de iniciar ainda é global)
+        const practiceMcqSection = document.getElementById('practice-mcq-section');
+        const startMcqBtn = document.getElementById('start-mcq-btn');
+        // Elementos internos do MCQ (mcqQuestionTextEl, etc.) serão buscados dinamicamente
+
+        // Funções Auxiliares
+        function showStatusMessage(message, type = 'info', duration = 5000) {
+            statusArea.innerHTML = `<div class="status-message ${type}">${message}</div>`;
+            statusArea.classList.remove('hidden');
+            setTimeout(() => {
+                statusArea.classList.add('hidden');
+                statusArea.innerHTML = '';
+            }, duration);
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const headers = { ...options.headers };
+            if (jwtToken) {
+                headers['Authorization'] = `Bearer ${jwtToken}`;
+            }
+            const response = await fetch(url, { ...options, headers });
+
+            if (response.status === 401) { // Unauthorized
+                showStatusMessage('Sessão expirada ou inválida. Por favor, faça login novamente.', 'error');
+                logout(); // Limpa o token e atualiza a UI
+                return null; // Indica que a requisição falhou devido à autenticação
+            }
+            return response;
+        }
+        
+        function updateLoginState() {
+            if (jwtToken) {
+                authSection.classList.add('hidden');
+                userLoggedInSection.classList.remove('hidden');
+                // Poderia buscar dados do usuário aqui com /users/me e mostrar o username
+                // Por ora, apenas indica que está logado.
+                // Tentar obter o nome do usuário se o token existir.
+                fetchWithAuth('/users/me/')
+                    .then(response => {
+                        if (response && response.ok) return response.json();
+                        throw new Error('Failed to fetch user data');
+                    })
+                    .then(data => {
+                        loggedInUsernameEl.textContent = data.username;
+                        // Mostrar seção de admin se for admin (lógica de roles não implementada)
+                        // Ex: if (data.is_admin) adminSection.classList.remove('hidden');
+                        adminSection.classList.remove('hidden'); // Temporariamente visível para teste
+                    })
+                    .catch(error => {
+                        console.error("Error fetching user data:", error);
+                        // Poderia limpar o token se ele for inválido.
+                        // logout(); 
+                    });
+
+            } else {
+                authSection.classList.remove('hidden');
+                userLoggedInSection.classList.add('hidden');
+                wordDisplayDiv.classList.add('hidden');
+                exerciseSubmissionSection.classList.add('hidden');
+                adminSection.classList.add('hidden');
+                loggedInUsernameEl.textContent = '';
+            }
+        }
+
+        function logout() {
+            jwtToken = null;
+            localStorage.removeItem('jwtToken');
+            updateLoginState();
+            showStatusMessage('Você foi desconectado.', 'info');
+        }
+
+        // Mostrar/Esconder Formulários de Login/Registro
+        document.getElementById('show-register-btn').addEventListener('click', () => {
+            loginFormContainer.classList.add('hidden');
+            registerFormContainer.classList.remove('hidden');
+        });
+        document.getElementById('show-login-btn').addEventListener('click', () => {
+            registerFormContainer.classList.add('hidden');
+            loginFormContainer.classList.remove('hidden');
+        });
+
+        // Event Listeners de Autenticação
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            const formData = new URLSearchParams();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch('/token', {
+                    method: 'POST',
+                    body: formData // FastAPI espera form data para OAuth2PasswordRequestForm
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    jwtToken = data.access_token;
+                    localStorage.setItem('jwtToken', jwtToken);
+                    updateLoginState();
+                    showStatusMessage('Login bem-sucedido!', 'success');
+                    document.getElementById('login-form').reset();
+                } else {
+                    showStatusMessage(data.detail || 'Falha no login.', 'error');
+                }
+            } catch (error) {
+                showStatusMessage('Erro de conexão ao tentar fazer login.', 'error');
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+            try {
+                const response = await fetch('/users/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showStatusMessage('Registro bem-sucedido! Faça o login.', 'success');
+                    document.getElementById('register-form').reset();
+                    registerFormContainer.classList.add('hidden');
+                    loginFormContainer.classList.remove('hidden');
+                } else {
+                    let errorMessage = 'Falha no registro.';
+                    if (data && data.detail) {
+                        errorMessage = Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail;
+                    }
+                    showStatusMessage(errorMessage, 'error');
+                    console.error("Erro no registro (resposta não OK):", data);
+                }
+            } catch (error) {
+                showStatusMessage('Erro de conexão ao tentar registrar. Verifique o console para detalhes.', 'error');
+                console.error("Erro de conexão no registro:", error);
+            }
+        });
+        
+        document.getElementById('logout-btn').addEventListener('click', logout);
+
+        // Funções de Exibição e API (adaptadas para auth)
+        function displayWordData(data, isExercise = false) {
+            wordTitleEl.innerText = data.word;
+            wordDefinitionEl.innerText = data.definition;
+            currentWordText = data.word; // Atualizar a palavra corrente globalmente
+            currentWordAudioUrl = data.audio_url; // Salvar URL do áudio para ditado
+            
+            const placeholderImageUrl = "https://placehold.co/600x400/EEE/31343C?text=Imagem+N%C3%A3o+Dispon%C3%ADvel";
+            if (data.image_url) {
+                wordImageEl.src = data.image_url;
+                wordImageEl.alt = `Imagem ilustrativa para ${data.word}`;
+            } else {
+                wordImageEl.src = placeholderImageUrl;
+                wordImageEl.alt = "Imagem placeholder - nenhuma imagem específica disponível";
+            }
+            
+            wordAudioEl.src = data.audio_url || "";
+            wordDisplayDiv.classList.remove('hidden');
+
+            // Mostrar botão para iniciar MCQ se uma palavra estiver sendo exibida
+            if (data.word) {
+                practiceMcqSection.classList.remove('hidden'); // Mostrar botão MCQ
+                practiceDictationSection.classList.remove('hidden');
+            } else {
+                practiceMcqSection.classList.add('hidden'); // Esconder botão MCQ
+                practiceDictationSection.classList.add('hidden');
+            }
+
+            if (isExercise && data.word) {
+                exerciseWordTextEl.innerText = data.word;
+                exerciseSubmissionSection.classList.remove('hidden');
+            } else {
+                exerciseSubmissionSection.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('search-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const word = document.getElementById('word-input').value;
+            if (!word) { showStatusMessage('Por favor, digite uma palavra.', 'error'); return; }
+            try {
+                // /word/{word_text} é público, não precisa de fetchWithAuth, mas pode usar se quiser consistência
+                const response = await fetch(`/word/${word}`); 
+                if (response.ok) {
+                    const data = await response.json();
+                    displayWordData(data, false);
+                    showStatusMessage(`Palavra '${data.word}' carregada.`, 'success');
+                } else {
+                    const errorData = await response.json();
+                    showStatusMessage(`Erro: ${errorData.detail || 'Palavra não encontrada!'}`, 'error');
+                    wordDisplayDiv.classList.add('hidden');
+                    exerciseSubmissionSection.classList.add('hidden');
+                }
+            } catch (error) { showStatusMessage(`Erro de conexão: ${error.message}`, 'error'); }
+        });
+
+        playAudioBtn.addEventListener('click', () => {
+            if (wordAudioEl.src) wordAudioEl.play();
+        });
+
+        document.getElementById('next-exercise-btn').addEventListener('click', async () => {
+            if (!jwtToken) { showStatusMessage('Faça login para obter um exercício.', 'error'); return; }
+            try {
+                showStatusMessage('Buscando próximo exercício...', 'info', 2000);
+                const response = await fetchWithAuth(`/next_exercise/me`); // Endpoint protegido
+                if (!response) return; // Erro de auth já tratado por fetchWithAuth
+
+                const result = await response.json();
+                if (response.ok && result.suggested_word) {
+                    const fullWordDataResponse = await fetch(`/word/${result.suggested_word.text}`); // Público
+                    if (fullWordDataResponse.ok) {
+                        const fullWordData = await fullWordDataResponse.json();
+                        displayWordData(fullWordData, true);
+                        showStatusMessage(`Próximo exercício: '${fullWordData.word}'. ${result.message}`, 'success');
+                    } else {
+                         showStatusMessage(`Erro ao buscar detalhes para '${result.suggested_word.text}'.`, 'error');
+                         wordDisplayDiv.classList.add('hidden');
+                         exerciseSubmissionSection.classList.add('hidden');
+                    }
+                } else {
+                    showStatusMessage(result.message || 'Não foi possível obter o próximo exercício.', 'error');
+                    wordDisplayDiv.classList.add('hidden');
+                    exerciseSubmissionSection.classList.add('hidden');
+                }
+            } catch (error) { showStatusMessage(`Erro de conexão: ${error.message}`, 'error'); }
+        });
+
+        document.getElementById('submit-exercise-result-btn').addEventListener('click', async () => {
+            if (!jwtToken) { showStatusMessage('Faça login para submeter resultados.', 'error'); return; }
+            if (!currentWordText) { showStatusMessage('Nenhum exercício ativo.', 'error'); return; }
+            
+            const accuracy = document.getElementById('accuracy-checkbox').checked ? 1.0 : 0.0;
+            const timeTaken = parseFloat(document.getElementById('time-taken-input').value);
+
+            if (isNaN(timeTaken) || timeTaken <= 0) { showStatusMessage('Tempo inválido.', 'error'); return; }
+
+            // O user_id não é mais necessário no payload, será pego do token no backend.
+            // O schema ExerciseSubmissionData no backend ainda pode ter user_id, mas será ignorado.
+            const submissionData = {
+                // user_id: "será pego do token", // Não enviar do frontend
+                word_text: currentWordText,
+                accuracy: accuracy,
+                time_taken_seconds: timeTaken
+            };
+            
+            try {
+                showStatusMessage('Enviando resultado...', 'info', 2000);
+                const response = await fetchWithAuth('/submit_exercise_data/', { // Endpoint protegido
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(submissionData)
+                });
+                if (!response) return; // Erro de auth já tratado
+
+                const result = await response.json();
+                if (response.ok) {
+                    showStatusMessage(`Resultado para '${currentWordText}' enviado!`, 'success');
+                    exerciseSubmissionSection.classList.add('hidden'); 
+                } else {
+                    showStatusMessage(`Erro ao enviar: ${result.detail || 'Erro desconhecido.'}`, 'error');
+                }
+            } catch (error) { showStatusMessage(`Erro de conexão: ${error.message}`, 'error'); }
+        });
+
+        document.getElementById('train-model-btn').addEventListener('click', async () => {
+            if (!jwtToken) { showStatusMessage('Faça login para treinar o modelo.', 'error'); return; }
+            try {
+                showStatusMessage('Iniciando treinamento do modelo...', 'info', 3000);
+                const response = await fetchWithAuth('/admin/train_model', { method: 'POST' }); // Endpoint protegido
+                if (!response) return; // Erro de auth já tratado
+
+                const result = await response.json();
+                if (response.ok) {
+                    showStatusMessage(`Treinamento: ${result.message}`, 'success');
+                } else {
+                    showStatusMessage(`Erro no treinamento: ${result.message || result.detail || 'Erro desc.'}`, 'error');
+                }
+            } catch (error) { showStatusMessage(`Erro de conexão: ${error.message}`, 'error'); }
+        });
+
+        // --- Lógica para Ditado (Carregada Dinamicamente) ---
+        function displayDictationFeedback(feedbackEl, message, type = 'info') {
+            if (!feedbackEl) return;
+            feedbackEl.textContent = message;
+            feedbackEl.className = `status-message ${type}`;
+            feedbackEl.classList.remove('hidden');
+        }
+
+        // Função para configurar e mostrar o exercício de ditado após carregar o parcial
+        function setupDictationExercise(container) {
+            const dictationContent = container.querySelector('#dictation-exercise-content');
+            if (!dictationContent) return;
+
+            const playDictationAudioBtn = dictationContent.querySelector('#play-dictation-audio-btn');
+            const dictationHiddenAudioEl = dictationContent.querySelector('#dictation-hidden-audio');
+            const dictationInputEl = dictationContent.querySelector('#dictation-input');
+            const submitDictationBtn = dictationContent.querySelector('#submit-dictation-btn');
+            const dictationFeedbackEl = dictationContent.querySelector('#dictation-feedback');
+
+            dictationHiddenAudioEl.src = currentWordAudioUrl;
+            dictationInputEl.value = '';
+            dictationFeedbackEl.classList.add('hidden');
+
+            playDictationAudioBtn.onclick = () => {
+                if (dictationHiddenAudioEl.src) {
+                    dictationHiddenAudioEl.play();
+                } else {
+                    showStatusMessage('Áudio para ditado não carregado.', 'error');
+                }
+            };
+
+            submitDictationBtn.onclick = async () => {
+                const userAnswer = dictationInputEl.value.trim();
+                if (!userAnswer) {
+                    displayDictationFeedback(dictationFeedbackEl, 'Por favor, digite sua resposta.', 'error');
+                    return;
+                }
+                const isCorrect = userAnswer.toLowerCase() === currentWordText.toLowerCase();
+                const accuracy = isCorrect ? 1.0 : 0.0;
+                const timeTaken = 15.0;
+
+                const submissionData = { word_text: currentWordText, accuracy: accuracy, time_taken_seconds: timeTaken };
+                showStatusMessage('Enviando resultado do ditado...', 'info', 2000);
+                const response = await fetchWithAuth('/submit_exercise_data/', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(submissionData)
+                });
+                // ... (tratamento de resposta e feedback como antes) ...
+                if (isCorrect) {
+                    displayDictationFeedback(dictationFeedbackEl, 'Correto! Excelente!', 'success');
+                } else {
+                    displayDictationFeedback(dictationFeedbackEl, `Ops! A palavra correta era "${currentWordText}". Tente novamente!`, 'error');
+                }
+                setTimeout(() => {
+                    dynamicExerciseContainer.innerHTML = '';
+                    dynamicExerciseContainer.classList.add('hidden');
+                    wordInteractionSection.classList.remove('hidden');
+                    if (currentWordText) {
+                         practiceMcqSection.classList.remove('hidden');
+                         practiceDictationSection.classList.remove('hidden');
+                         wordDisplayDiv.classList.remove('hidden');
+                    } else {
+                        wordDisplayDiv.classList.add('hidden');
+                    }
+                }, 5000);
+            };
+            dynamicExerciseContainer.classList.remove('hidden');
+        }
+
+        startDictationBtn.addEventListener('click', async () => {
+            if (!currentWordText || !currentWordAudioUrl) {
+                showStatusMessage('Por favor, primeiro busque ou obtenha uma palavra com áudio para praticar.', 'error');
+                return;
+            }
+            if (!jwtToken) { showStatusMessage('Faça login para iniciar um exercício.', 'error'); return; }
+
+            showStatusMessage(`Preparando exercício de ditado para "${currentWordText}"...`, 'info', 1500);
+            
+            wordInteractionSection.classList.add('hidden');
+            progressPageSection.classList.add('hidden');
+            dragDropExerciseSection.classList.add('hidden');
+            dynamicExerciseContainer.innerHTML = '';
+
+            try {
+                const partialResponse = await fetch('/app/partials/dictation');
+                if (!partialResponse.ok) throw new Error('Falha ao carregar o template do ditado.');
+                dynamicExerciseContainer.innerHTML = await partialResponse.text();
+                setupDictationExercise(dynamicExerciseContainer); // Chamar a função de setup
+            } catch (error) {
+                showStatusMessage(`Erro: ${error.message}`, 'error');
+                dynamicExerciseContainer.classList.add('hidden');
+                wordInteractionSection.classList.remove('hidden');
+            }
+        });
+
+        // --- Lógica para Página de Progresso ---
+        function showProgressPageFeedback(message, type = 'info') {
+            progressMessageEl.textContent = message;
+            progressMessageEl.className = `status-message ${type}`;
+            progressMessageEl.classList.remove('hidden');
+            setTimeout(() => progressMessageEl.classList.add('hidden'), 5000);
+        }
+
+        function renderProgressCharts(reportData) {
+            if (accuracyChartInstance) accuracyChartInstance.destroy();
+            if (wordsPracticedChartInstance) wordsPracticedChartInstance.destroy();
+
+            const labels = reportData.progress_trend.map(p => `ID ${p.progress_id_or_timestamp}`); // Usando ID como rótulo
+
+            accuracyChartInstance = new Chart(accuracyTrendChartCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Acurácia da Sessão',
+                        data: reportData.progress_trend.map(p => p.accuracy_at_point * 100), // % 
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { callback: function(value) { return value + "%" } }
+                        }
+                    }
+                }
+            });
+
+            wordsPracticedChartInstance = new Chart(wordsPracticedChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nº Cumulativo de Palavras Únicas Praticadas',
+                        data: reportData.progress_trend.map(p => p.cumulative_words_practiced),
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        async function loadAndDisplayProgressReport() {
+            if (!jwtToken) {
+                showStatusMessage('Faça login para ver seu progresso.', 'error');
+                return;
+            }
+            showStatusMessage('Carregando seu relatório de progresso...', 'info', 2000);
+            wordInteractionSection.classList.add('hidden');
+            authSection.classList.add('hidden'); // Garantir que forms de login/registro também estejam ocultos
+            dictationExerciseSection.classList.add('hidden');
+            wordDisplayDiv.classList.add('hidden');
+            exerciseSubmissionSection.classList.add('hidden');
+
+            try {
+                const response = await fetchWithAuth('/users/me/progress_report/');
+                if (!response) { // Erro de auth já tratado
+                    progressPageSection.classList.add('hidden'); // Esconder se falhar
+                    wordInteractionSection.classList.remove('hidden'); // Mostrar de volta a seção principal
+                    return;
+                }
+
+                if (response.ok) {
+                    const reportData = await response.json();
+                    if (reportData.message) {
+                         showProgressPageFeedback(reportData.message, reportData.total_words_attempted_unique > 0 ? 'info' : 'info');
+                    }
+                    totalWordsAttemptedEl.textContent = reportData.total_words_attempted_unique;
+                    overallAccuracyEl.textContent = (reportData.overall_accuracy * 100).toFixed(1);
+                    avgTimePerAttemptEl.textContent = reportData.average_time_per_attempt.toFixed(1);
+                    
+                    if (reportData.progress_trend && reportData.progress_trend.length > 0) {
+                        renderProgressCharts(reportData);
+                        document.getElementById('progress-charts').classList.remove('hidden');
+                    } else {
+                        if (accuracyChartInstance) accuracyChartInstance.destroy();
+                        if (wordsPracticedChartInstance) wordsPracticedChartInstance.destroy();
+                        document.getElementById('progress-charts').classList.add('hidden');
+                        showProgressPageFeedback('Nenhum dado de tendência para exibir nos gráficos.', 'info');
+                    }
+                    progressPageSection.classList.remove('hidden');
+                } else {
+                    const errorData = await response.json();
+                    showStatusMessage(`Erro ao carregar relatório: ${errorData.detail || 'Falha.'}`, 'error');
+                    wordInteractionSection.classList.remove('hidden'); // Mostrar de volta a seção principal
+                }
+            } catch (error) {
+                showStatusMessage(`Erro de conexão ao carregar relatório: ${error.message}`, 'error');
+                wordInteractionSection.classList.remove('hidden'); // Mostrar de volta a seção principal
+            }
+        }
+
+        showProgressBtn.addEventListener('click', loadAndDisplayProgressReport);
+
+        backToMainViewBtn.addEventListener('click', () => {
+            progressPageSection.classList.add('hidden');
+            wordInteractionSection.classList.remove('hidden');
+            // Atualizar o estado de login para mostrar a seção correta (auth ou user-logged-in)
+            updateLoginState(); 
+        });
+
+        // --- Lógica para Arrastar e Soltar (Drag and Drop) com Carregamento Dinâmico ---
+        function displayDragDropFeedback(feedbackEl, message, type = 'info') {
+            if (!feedbackEl) return;
+            feedbackEl.textContent = message;
+            feedbackEl.className = `status-message ${type}`;
+            feedbackEl.classList.remove('hidden');
+        }
+
+        function setupDragDropExercise(container, exerciseData) {
+            currentDragDropExerciseData = exerciseData; 
+            const dragDropContent = container.querySelector('#drag-drop-exercise-content');
+            if (!dragDropContent) return;
+
+            const dragDropInstructionEl = dragDropContent.querySelector('#drag-drop-instruction');
+            const draggableItemsPoolEl = dragDropContent.querySelector('#draggable-items-pool');
+            const dropZonesContainerEl = dragDropContent.querySelector('#drop-zones-container');
+            const checkDragDropBtn = dragDropContent.querySelector('#check-drag-drop-btn');
+            const dragDropFeedbackEl = dragDropContent.querySelector('#drag-drop-feedback');
+            
+            dragDropInstructionEl.textContent = exerciseData.instruction;
+            draggableItemsPoolEl.innerHTML = '<h4>Definições (Arraste daqui):</h4>'; 
+            dropZonesContainerEl.innerHTML = '<h4>Palavras (Solte aqui):</h4>'; 
+            dragDropFeedbackEl.classList.add('hidden');
+
+            sortableInstances.forEach(s => s.destroy());
+            sortableInstances = [];
+
+            exerciseData.draggable_items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'drag-item';
+                div.textContent = item.content;
+                div.setAttribute('data-id', item.id);
+                div.style.padding = '10px'; div.style.margin = '5px'; div.style.border = '1px dashed #666';
+                div.style.backgroundColor = '#fff'; div.style.cursor = 'grab';
+                draggableItemsPoolEl.appendChild(div);
+            });
+
+            exerciseData.drop_zones.forEach(zone => {
+                const zoneWrapper = document.createElement('div');
+                zoneWrapper.className = 'drop-zone-wrapper'; zoneWrapper.style.marginBottom = '10px';
+                const wordP = document.createElement('p');
+                wordP.textContent = zone.content; wordP.style.fontWeight = 'bold';
+                zoneWrapper.appendChild(wordP);
+                const dropList = document.createElement('div');
+                dropList.className = 'drop-list';
+                dropList.setAttribute('data-zone-id', zone.id);
+                dropList.setAttribute('data-correct-draggable-id', zone.correct_draggable_id);
+                dropList.style.border = '2px solid #aaa'; dropList.style.padding = '10px';
+                dropList.style.minHeight = '50px'; dropList.style.backgroundColor = '#fafafa';
+                zoneWrapper.appendChild(dropList);
+                dropZonesContainerEl.appendChild(zoneWrapper);
+                const zoneSortable = new Sortable(dropList, {
+                    group: 'shared-definitions', animation: 150,
+                    onAdd: function (evt) {
+                        if (evt.to.children.length > 1) {
+                            Sortable.utils.select(evt.item).parentNode.removeChild(evt.item);
+                            sortableInstances[0].el.appendChild(evt.item);
+                            displayDragDropFeedback(dragDropFeedbackEl, 'Apenas uma definição por palavra.', 'error');
+                            setTimeout(() => dragDropFeedbackEl.classList.add('hidden'), 2000);
+                        }
+                    }
+                });
+                sortableInstances.push(zoneSortable);
+            });
+
+            const poolSortable = new Sortable(draggableItemsPoolEl, { group: 'shared-definitions', animation: 150, sort: true });
+            sortableInstances.push(poolSortable);
+
+            checkDragDropBtn.onclick = async () => {
+                if (!currentDragDropExerciseData) {
+                    displayDragDropFeedback(dragDropFeedbackEl, 'Nenhum exercício ativo.', 'error'); return;
+                }
+                let correctMatches = 0;
+                const totalPairs = currentDragDropExerciseData.drop_zones.length;
+                currentDragDropExerciseData.drop_zones.forEach(zone => {
+                    const dropListEl = dropZonesContainerEl.querySelector(`.drop-list[data-zone-id="${zone.id}"]`);
+                    if (dropListEl && dropListEl.children.length === 1) {
+                        const droppedItemEl = dropListEl.children[0];
+                        const droppedItemId = droppedItemEl.getAttribute('data-id');
+                        if (droppedItemId === zone.correct_draggable_id) correctMatches++;
+                    }
+                });
+                const accuracy = totalPairs > 0 ? (correctMatches / totalPairs) : 0.0;
+                displayDragDropFeedback(dragDropFeedbackEl, `Acertou ${correctMatches}/${totalPairs}. (Acurácia: ${(accuracy * 100).toFixed(0)}%)`, accuracy > 0.7 ? 'success' : 'info');
+
+                if (currentWordText) { // Usar palavra corrente para submissão se existir
+                    const submitResponse = await fetchWithAuth('/submit_exercise_data/', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ word_text: currentWordText, accuracy: accuracy, time_taken_seconds: 60 })
+                    });
+                    if (submitResponse && submitResponse.ok) showStatusMessage('Resultado do arrastar e soltar enviado!', 'success', 3000);
+                    else showStatusMessage('Falha ao enviar resultado do arrastar e soltar.', 'error', 3000);
+                } else {
+                    showStatusMessage('Resultado calculado, mas não enviado (palavra base não selecionada).','info', 4000);
+                }
+                setTimeout(() => {
+                    dynamicExerciseContainer.innerHTML = '';
+                    dynamicExerciseContainer.classList.add('hidden');
+                    wordInteractionSection.classList.remove('hidden');
+                    updateLoginState(); 
+                }, 7000);
+            };
+            dynamicExerciseContainer.classList.remove('hidden');
+        }
+
+        startDragDropExerciseBtn.addEventListener('click', async () => {
+            if (!jwtToken) { showStatusMessage('Faça login para praticar.', 'error'); return; }
+            showStatusMessage('Carregando exercício de arrastar e soltar...', 'info', 2000);
+
+            wordInteractionSection.classList.add('hidden');
+            progressPageSection.classList.add('hidden');
+            dynamicExerciseContainer.innerHTML = '';
+
+            try {
+                // 1. Carregar o HTML parcial
+                const partialResponse = await fetch('/app/partials/drag_drop');
+                if (!partialResponse.ok) throw new Error('Falha ao carregar template do Arrastar e Soltar.');
+                dynamicExerciseContainer.innerHTML = await partialResponse.text();
+                
+                // 2. Carregar os dados do exercício
+                const exerciseDataResponse = await fetchWithAuth('/exercise/drag_drop_match/');
+                if (!exerciseDataResponse) {
+                    dynamicExerciseContainer.classList.add('hidden');
+                    wordInteractionSection.classList.remove('hidden');
+                    return;
+                }
+                if (exerciseDataResponse.ok) {
+                    const exerciseData = await exerciseDataResponse.json();
+                    setupDragDropExercise(dynamicExerciseContainer, exerciseData);
+                } else {
+                    const errorData = await exerciseDataResponse.json();
+                    showStatusMessage(`Erro ao carregar exercício: ${errorData.detail || 'Falha.'}`, 'error');
+                    dynamicExerciseContainer.classList.add('hidden');
+                    wordInteractionSection.classList.remove('hidden');
+                }
+            } catch (error) {
+                showStatusMessage(`Erro de conexão: ${error.message}`, 'error');
+                dynamicExerciseContainer.classList.add('hidden');
+                wordInteractionSection.classList.remove('hidden');
+            }
+        });
+
+        // --- Lógica para Múltipla Escolha (Carregada Dinamicamente) ---
+        function displayMcqFeedback(feedbackEl, message, type = 'info') {
+            if (!feedbackEl) return;
+            feedbackEl.textContent = message;
+            feedbackEl.className = `status-message ${type}`;
+            feedbackEl.classList.remove('hidden');
+        }
+
+        async function handleMcqOptionClick(selectedOptionWordId, wordForSubmission, exerciseContainer) {
+            const isCorrect = (selectedOptionWordId === currentTargetWordId); // currentTargetWordId ainda é global para o contexto do MCQ ativo
+            const accuracy = isCorrect ? 1.0 : 0.0;
+            const timeTaken = 10.0; 
+
+            const submissionData = { word_text: wordForSubmission, accuracy: accuracy, time_taken_seconds: timeTaken };
+            showStatusMessage('Enviando resultado do exercício de múltipla escolha...', 'info', 2000);
+            const response = await fetchWithAuth('/submit_exercise_data/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(submissionData)
+            });
+
+            const feedbackEl = exerciseContainer.querySelector('#mcq-feedback');
+            if (response && response.ok) {
+                showStatusMessage(`Resultado para '${wordForSubmission}' (múltipla escolha) enviado!`, 'success');
+            }
+            // ... (tratamento de erro de submissão como antes)
+
+            if (isCorrect) {
+                displayMcqFeedback(feedbackEl, 'Muito bem! Resposta correta!', 'success');
+            } else {
+                displayMcqFeedback(feedbackEl, `Quase lá! A definição correta era: "${correctAnswerDefinition}"`, 'error');
+            }
+
+            setTimeout(() => {
+                dynamicExerciseContainer.innerHTML = ''; // Limpar container
+                dynamicExerciseContainer.classList.add('hidden');
+                if (currentWordText) practiceMcqSection.classList.remove('hidden'); // Mostrar botão de novo
+            }, 5000);
+        }
+
+        function displayMultipleChoiceExercise(exerciseData, container) {
+            const mcqContent = container.querySelector('#multiple-choice-exercise-content');
+            if (!exerciseData || !exerciseData.options || exerciseData.options.length === 0 || !mcqContent) {
+                showStatusMessage('Não foi possível carregar o exercício de múltipla escolha.', 'error');
+                dynamicExerciseContainer.innerHTML = ''; 
+                dynamicExerciseContainer.classList.add('hidden');
+                return;
+            }
+
+            const mcqQuestionTextEl = mcqContent.querySelector('#mcq-question-text');
+            const mcqOptionsContainerEl = mcqContent.querySelector('#mcq-options-container');
+            
+            mcqQuestionTextEl.textContent = exerciseData.message || `Qual a definição de "${exerciseData.target_word_text}"?`;
+            mcqOptionsContainerEl.innerHTML = ''; 
+            currentTargetWordId = exerciseData.target_word_id; // Variável global para o contexto do MCQ
+            const wordForSubmission = exerciseData.target_word_text;
+
+            const correctOpt = exerciseData.options.find(opt => opt.word_id === currentTargetWordId);
+            correctAnswerDefinition = correctOpt ? correctOpt.definition : "[Definição não encontrada]"; // Global para feedback
+
+            exerciseData.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option.definition;
+                button.style.display = 'block';
+                button.style.width = '100%';
+                button.style.marginBottom = '10px';
+                button.style.textAlign = 'left';
+                button.type = 'button'; // Boa prática
+                button.onclick = () => handleMcqOptionClick(option.word_id, wordForSubmission, container);
+                mcqOptionsContainerEl.appendChild(button);
+            });
+            dynamicExerciseContainer.classList.remove('hidden');
+        }
+
+        startMcqBtn.addEventListener('click', async () => {
+            if (!currentWordText) {
+                showStatusMessage('Por favor, primeiro busque ou obtenha uma palavra para praticar.', 'error');
+                return;
+            }
+            if (!jwtToken) { showStatusMessage('Faça login para iniciar um exercício.', 'error'); return; }
+
+            showStatusMessage(`Preparando exercício de múltipla escolha para "${currentWordText}"...`, 'info', 2000);
+            
+            // Esconder outras seções principais e limpar container dinâmico
+            wordInteractionSection.classList.add('hidden');
+            progressPageSection.classList.add('hidden');
+            dictationExerciseSection.classList.add('hidden');
+            dragDropExerciseSection.classList.add('hidden');
+            dynamicExerciseContainer.innerHTML = '';
+
+            try {
+                // 1. Carregar o HTML parcial do MCQ
+                const partialResponse = await fetch('/app/partials/mcq');
+                if (!partialResponse.ok) {
+                    throw new Error('Falha ao carregar o template do exercício de múltipla escolha.');
+                }
+                const mcqHtml = await partialResponse.text();
+                dynamicExerciseContainer.innerHTML = mcqHtml;
+                dynamicExerciseContainer.classList.remove('hidden');
+
+                // 2. Carregar os dados do exercício MCQ
+                const exerciseDataResponse = await fetchWithAuth(`/exercise/multiple_choice/${currentWordText}`);
+                if (!exerciseDataResponse) { // Erro de auth já tratado
+                    dynamicExerciseContainer.classList.add('hidden');
+                    wordInteractionSection.classList.remove('hidden');
+                    return; 
+                }
+
+                if (exerciseDataResponse.ok) {
+                    const exerciseData = await exerciseDataResponse.json();
+                    displayMultipleChoiceExercise(exerciseData, dynamicExerciseContainer);
+                } else {
+                    const errorData = await exerciseDataResponse.json();
+                    showStatusMessage(`Erro ao buscar dados do exercício: ${errorData.detail || 'Falha ao carregar.'}`, 'error');
+                    dynamicExerciseContainer.classList.add('hidden');
+                    wordInteractionSection.classList.remove('hidden');
+                }
+            } catch (error) {
+                showStatusMessage(`Erro: ${error.message}`, 'error');
+                dynamicExerciseContainer.classList.add('hidden');
+                wordInteractionSection.classList.remove('hidden');
+            }
+        });
+
+        // Inicialização
+        updateLoginState(); // Verifica se já existe um token ao carregar a página
+    </script>
+</body>
+</html> 
