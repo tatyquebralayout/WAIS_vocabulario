@@ -1,4 +1,10 @@
-# Programa Educacional Inclusivo de Vocabulário
+# WAIS Vocabulário: Expansão e Prática de Vocabulário
+
+**WAIS Vocabulário** é uma aplicação web educacional inspirada nos subtestes de vocabulário frequentemente encontrados em avaliações de inteligência, como a Escala Wechsler de Inteligência para Adultos (WAIS). O projeto visa transcender a simples avaliação, oferecendo uma plataforma interativa e adaptativa onde os usuários podem ativamente **praticar, testar e expandir seu vocabulário**.
+
+A intenção é criar uma ferramenta que não apenas auxilie no aprendizado de novas palavras, mas que também reforce o conhecimento existente através de exercícios variados e feedback, promovendo uma compreensão mais profunda e um uso mais eficaz da linguagem.
+
+## Sobre o Projeto (Visão Geral Técnica)
 
 Este projeto é uma aplicação web educacional desenvolvida em Python com FastAPI, projetada para auxiliar no aprendizado de vocabulário de forma inclusiva e adaptativa.
 
