@@ -1,73 +1,94 @@
 from gtts import gTTS
 import os
+import asyncio # Para rodar gTTS em uma thread separada
+import logging
+import re # Para sanitizar nomes de arquivos
 
-# Define o diretório base do backend (Palavras_project/backend)
-# __file__ é F:/aprendizado/Palavras_project/backend/app/services/tts_service.py
-# Subimos três níveis para chegar em Palavras_project/backend
-BACKEND_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+logger = logging.getLogger(__name__)
 
-# Define o caminho para a pasta de áudio DENTRO da pasta static do backend
-# Resultado esperado: Palavras_project/backend/static/audio
-AUDIO_DIR_FULL_PATH = os.path.join(BACKEND_ROOT_DIR, "static", "audio")
+# Não precisamos mais de BACKEND_ROOT_DIR ou AUDIO_DIR_FULL_PATH definidos globalmente aqui,
+# já que o path base para salvar será passado para a função.
 
-# Garante que o diretório de áudio exista ao carregar o módulo
-os.makedirs(AUDIO_DIR_FULL_PATH, exist_ok=True)
-
-def generate_audio_from_text(text: str, lang: str = 'pt') -> str | None:
+async def _generate_audio_from_text_func(text: str, audio_save_base_path: str, lang: str = 'pt') -> str | None:
     """
-    Gera um áudio a partir do texto fornecido e o salva em um arquivo.
-    O áudio é salvo em backend/static/audio/
-    Retorna a URL relativa para o frontend (ex: /static/audio/filename.mp3)
+    Gera um áudio a partir do texto fornecido e o salva em um arquivo no diretório especificado.
+    Retorna o nome do arquivo gerado (ex: palavra.mp3) ou None em caso de erro.
+    Esta função agora é assíncrona e executa a parte bloqueante (gTTS) em uma thread.
 
     Args:
         text (str): O texto a ser convertido em áudio.
+        audio_save_base_path (str): O diretório base para salvar o áudio.
         lang (str, optional): Idioma do áudio. Default é 'pt' (Português).
 
     Returns:
-        str | None: A URL relativa para o arquivo de áudio gerado ou None em caso de erro.
+        str | None: O nome do arquivo gerado ou None em caso de erro.
     """
-    try:
-        # Cria um nome de arquivo seguro removendo caracteres não alfanuméricos
-        safe_filename = "".join(c if c.isalnum() else "_" for c in text.lower()) + ".mp3"
-        
-        # Caminho completo onde o arquivo de áudio será salvo
-        audio_save_path = os.path.join(AUDIO_DIR_FULL_PATH, safe_filename)
-        
-        # Verifica se o arquivo já existe para não gerar novamente sem necessidade
-        if not os.path.exists(audio_save_path):
-            tts = gTTS(text=text, lang=lang, slow=False)
-            tts.save(audio_save_path)
-            print(f"Áudio salvo em: {audio_save_path}")
-        else:
-            print(f"Áudio já existe em: {audio_save_path}")
-        
-        # Retorna a URL relativa para o frontend
-        # O servidor FastAPI está montado em /static para servir a pasta backend/static
-        # Portanto, a URL deve ser /static/audio/nome_do_arquivo.mp3
-        url_path = f"/static/audio/{safe_filename}"
-        return url_path
-
-    except Exception as e:
-        print(f"Erro ao gerar áudio para '{text}': {e}")
+    if not text or not audio_save_base_path:
+        logger.warning("Texto ou caminho base para salvar áudio não fornecido.")
         return None
 
-# Exemplo de uso (será chamado de outros lugares, como o main.py):
-if __name__ == '__main__':
-    print(f"Diretório raiz do backend configurado como: {BACKEND_ROOT_DIR}")
-    print(f"Diretório de áudio configurado como: {AUDIO_DIR_FULL_PATH}")
+    try:
+        # Cria um nome de arquivo seguro removendo caracteres não alfanuméricos e substituindo espaços
+        # Mantém acentos e cedilha se desejado, ou remove tudo que não for ASCII alfanumérico.
+        # Versão mais restritiva para nomes de arquivo URL-friendly:
+        safe_filename_base = re.sub(r'[^a-z0-9_.]', '', text.lower().replace(" ", "_"))
+        if not safe_filename_base: # Se o texto for só caracteres especiais
+            safe_filename_base = "audio" # Fallback
+        safe_filename = f"{safe_filename_base[:50]}.mp3" # Limita o comprimento e adiciona extensão
+        
+        audio_full_save_path = os.path.join(audio_save_base_path, safe_filename)
+        
+        # Verificar se o diretório de destino existe, se não, tentar criar
+        # Isso já é feito no WordInfoService, mas uma verificação dupla não faz mal
+        if not os.path.exists(audio_save_base_path):
+            try:
+                os.makedirs(audio_save_base_path, exist_ok=True)
+                logger.info(f"Diretório de áudio criado em tts_service: {audio_save_base_path}")
+            except OSError as e:
+                logger.error(f"Falha ao criar diretório de áudio {audio_save_base_path} em tts_service: {e}")
+                return None # Não pode salvar se o diretório não puder ser criado
 
-    # Testando a geração de áudio
-    url1 = generate_audio_from_text("Olá mundo do teste")
-    if url1:
-        print(f"URL do áudio 1: {url1}")
-        # Para verificar, você encontraria o arquivo em:
-        # F:\aprendizado\Palavras_project\backend\static\audio\olá_mundo_do_teste.mp3
+        # A geração e salvamento do áudio são operações bloqueantes
+        # Vamos executá-las em uma thread separada para não bloquear o event loop do asyncio
+        async def _blocking_tts_save():
+            if not os.path.exists(audio_full_save_path):
+                tts = gTTS(text=text, lang=lang, slow=False)
+                tts.save(audio_full_save_path)
+                logger.info(f"Áudio salvo em: {audio_full_save_path}")
+                return True # Indica que o arquivo foi gerado
+            else:
+                logger.info(f"Áudio já existe (não sobrescrito): {audio_full_save_path}")
+                return False # Indica que o arquivo já existia
+        
+        await asyncio.to_thread(_blocking_tts_save)
+        
+        # Retorna apenas o nome do arquivo para que o chamador construa a URL
+        return safe_filename
 
-    url2 = generate_audio_from_text("Testando caracteres especiais: Olá? Mundo!")
-    if url2:
-        print(f"URL do áudio 2: {url2}")
-        # Nome esperado do arquivo: testando_caracteres_especiais__olá__mundo_.mp3
+    except Exception as e:
+        logger.error(f"Erro ao gerar áudio para '{text}': {e}", exc_info=True)
+        return None
 
-    url3 = generate_audio_from_text("Olá mundo do teste") # Testando áudio já existente
-    if url3:
-        print(f"URL do áudio 3 (deve ser o mesmo): {url3}") 
+class TTSService:
+    async def generate_audio_from_text(self, text: str, audio_save_base_path: str, lang: str = 'pt') -> str | None:
+        return await _generate_audio_from_text_func(text, audio_save_base_path, lang)
+
+# Exemplo de uso (para teste local)
+# async def main():
+#     # Simular o path que seria passado pelo WordInfoService
+#     # Palavras_project/backend/static/audio
+#     test_audio_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "static", "audio"))
+#     os.makedirs(test_audio_dir, exist_ok=True)
+#     print(f"Testando com diretório de áudio: {test_audio_dir}")
+#     
+#     filename1 = await generate_audio_from_text("Olá mundo do TTS assíncrono", test_audio_dir)
+#     if filename1:
+#         print(f"Nome do arquivo de áudio 1: {filename1}")
+#     
+#     filename2 = await generate_audio_from_text("Café & Cachaça na Città!", test_audio_dir)
+#     if filename2:
+#         print(f"Nome do arquivo de áudio 2: {filename2}")
+#
+# if __name__ == "__main__":
+#     logging.basicConfig(level=logging.INFO)
+#     asyncio.run(main()) 

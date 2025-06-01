@@ -1,0 +1,280 @@
+:root {
+            --primary-color: #0056b3; /* Azul que já estávamos usando */
+            --primary-dark-color: #004080;
+            --accent-color: #4CAF50; /* Um verde para ações de destaque, como exercícios */
+            --text-color: #1c1e21;
+            --secondary-text-color: #606770;
+            --background-color: #f0f2f5;
+            --surface-color: #ffffff;
+            --divider-color: #dddfe2;
+            --error-color: #d9534f;
+            --error-dark-color: #c9302c;
+            --success-color: #5cb85c;
+            --success-dark-color: #4cae4c;
+            --input-background-color: #f5f6f7;
+            --input-border-color: #dddfe2;
+            --input-focus-border-color: var(--primary-color);
+            --input-focus-shadow-color: rgba(0, 86, 179, 0.25); /* Azul primário com transparência */
+        }
+
+        body {
+            font-family: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            padding-top: 60px; /* Altura aproximada da app-bar + um pouco de margem */
+            display: block; /* Mudar de flex para block */
+            min-height: 100vh;
+        }
+
+        /* Esconde as outras seções quando a autenticação está ativa */
+        body:has(#auth-section:not(.hidden)) #user-logged-in-section,
+        body:has(#auth-section:not(.hidden)) #word-interaction-section,
+        body:has(#auth-section:not(.hidden)) #progress-page-section,
+        body:has(#auth-section:not(.hidden)) #dynamic-exercise-container {
+            display: none !important;
+        }
+
+        /* Ajusta o container principal para a tela de login */
+        body:has(#auth-section:not(.hidden)) .container {
+            max-width: 420px; /* Um pouco mais de espaço para o padding */
+            margin: auto; /* Centraliza o container */
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+        }
+        /* Remove o padding do body quando só auth está visível para não duplicar espaçamento */
+        body:has(#auth-section:not(.hidden)) {
+             padding-top: 0; /* Sem padding-top quando a auth-section estiver visível */
+             display: flex; /* Restaurar flex para centralizar auth */
+             flex-direction: column;
+             min-height: 100vh;
+             align-items: center;
+             justify-content: center;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .auth-header h1 {
+            font-size: 2.8em; /* Maior */
+            color: var(--primary-color); /* Azul primário */
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .auth-header p {
+            font-size: 1.1em;
+            color: var(--secondary-text-color);
+            margin-bottom: 0;
+        }
+
+        .container {
+            max-width: 800px; 
+            margin: 20px auto; 
+            background-color: var(--surface-color);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
+            width: 100%; 
+        }
+
+        /* Estilos para os formulários de auth, refinados */
+        .auth-container h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--text-color);
+            font-size: 1.6em;
+            font-weight: 600;
+        }
+
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: var(--secondary-text-color); 
+            font-size: 0.95em;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 18px; /* Mais espaço */
+            border-radius: 6px; /* Bordas levemente arredondadas */
+            border: 1px solid var(--input-border-color);
+            font-size: 1em;
+            box-sizing: border-box;
+            background-color: var(--input-background-color);
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+        }
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--input-focus-border-color);
+            box-shadow: 0 0 0 3px var(--input-focus-shadow-color); /* Sombra de foco mais suave */
+            outline: none;
+            background-color: var(--surface-color); /* Fundo branco ao focar */
+        }
+
+        /* Estilo base para botões - Material Inspired */
+        button, 
+        input[type="submit"] { /* Aplicar a todos os botões e submits */
+            padding: 10px 20px;
+            margin: 5px; /* Margem para não colar botões */
+            border-radius: 4px;
+            border: none;
+            font-size: 1em;
+            font-weight: 600; /* Material usa bold */
+            text-transform: uppercase; /* Material usa uppercase para botões */
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            background-color: var(--primary-color); 
+            color: white;
+            box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.12), 0 1px 5px 0 rgba(0,0,0,0.2);
+            transition: background-color 0.2s, box-shadow 0.2s;
+            min-width: 88px; /* Largura mínima comum */
+            text-align: center;
+            line-height: 1.5; /* Melhor alinhamento vertical do texto */
+        }
+        button:hover, 
+        input[type="submit"]:hover {
+            background-color: var(--primary-dark-color); 
+            box-shadow: 0 3px 3px 0 rgba(0,0,0,0.14), 0 1px 7px 0 rgba(0,0,0,0.12), 0 3px 1px -1px rgba(0,0,0,0.2);
+        }
+        button:active,
+        input[type="submit"]:active {
+            box-shadow: 0 5px 5px -3px rgba(0,0,0,0.2), 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12);
+        }
+
+        /* Botões específicos para formulários de autenticação */
+        .auth-form button[type="submit"] { 
+            width: 100%; /* Mantém largura total para forms */
+            margin-top: 10px; 
+            margin-bottom: 15px; 
+             /* Outros estilos serão herdados do 'button' geral */
+        }
+
+        .auth-container p {
+            text-align: center;
+            font-size: 0.9em;
+            color: var(--secondary-text-color);
+            margin-top: 20px;
+        }
+        .auth-container p button { /* Botão de 'Registre-se' / 'Login' dentro do parágrafo */
+            background-color: transparent;
+            color: var(--primary-color);
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            padding: 0;
+            margin: 0 5px;
+            display: inline;
+            width: auto;
+            font-size: 1em; /* Mesmo tamanho do texto do parágrafo */
+            box-shadow: none; /* Remover sombra de botão para estes links */
+            text-transform: none; /* Não precisa de uppercase aqui */
+        }
+        .auth-container p button:hover {
+            text-decoration: underline;
+            background-color: transparent;
+            box-shadow: none;
+        }
+        
+        .admin-button { 
+            background-color: var(--error-color);
+        }
+        .admin-button:hover { 
+            background-color: var(--error-dark-color);
+        }
+
+        /* Card Style Base */
+        .card {
+            background-color: var(--surface-color);
+            padding: 20px;
+            border-radius: 8px; /* Bordas um pouco mais arredondadas que botões */
+            margin-top: 20px;
+            box-shadow: 0 2px 1px -1px rgba(0,0,0,0.2), 0 1px 1px 0 rgba(0,0,0,0.14), 0 1px 3px 0 rgba(0,0,0,0.12); /* Sombra padrão Material */
+        }
+
+        /* Estilo de card para os formulários de autenticação já é parcialmente coberto por .container, mas podemos ser mais explícitos */
+        #auth-section .auth-container { /* Os containers de login e registro */
+            background-color: var(--surface-color);
+            padding: 25px; /* Um pouco mais de padding interno */
+            border-radius: 8px;
+            box-shadow: 0 2px 1px -1px rgba(0,0,0,0.2), 0 1px 1px 0 rgba(0,0,0,0.14), 0 1px 3px 0 rgba(0,0,0,0.12);
+            margin-bottom: 20px; /* Espaço entre forms se ambos visíveis (não é o caso) ou para outros elementos */
+        }
+
+        #word-image { max-width: 100%; border-radius: 4px; margin-top: 10px; }
+        .hidden { display: none !important; } /* Adicionado !important para garantir precedência */
+        
+        .status-message { 
+            padding: 12px 15px; /* Mais padding */
+            margin-top: 15px; 
+            margin-bottom: 15px; /* Espaçamento consistente */
+            border-radius: 4px; 
+            text-align: center; 
+            font-weight: 500;
+            border: 1px solid transparent; /* Para manter o layout consistente */
+        }
+        .success { 
+            background-color: #d4edda; /* Verde claro */
+            color: #155724;  /* Verde escuro */
+            border-color: #c3e6cb; 
+        }
+        .error { 
+            background-color: #f8d7da; /* Vermelho claro */
+            color: #721c24; /* Vermelho escuro */
+            border-color: #f5c6cb;
+        }
+        .info { 
+            background-color: #cce5ff; /* Azul claro */
+            color: #004085; /* Azul escuro */
+            border-color: #b8daff;
+        }
+
+        hr { 
+            margin: 25px 0; 
+            border: 0; 
+            height: 1px; 
+            background-color: var(--divider-color);
+        }
+
+        /* Estilos para a App Bar (Barra de Navegação Superior) */
+        .app-bar {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            width: 100%; /* Ocupa toda a largura */
+            box-sizing: border-box; /* Padding não aumenta a largura total */
+            position: fixed; /* Fixa no topo */
+            top: 0;
+            left: 0;
+            z-index: 1000; /* Garante que fique na frente */
+        }
+        .app-bar h1 {
+            margin: 0;
+            font-size: 1.5em;
+            color: white; /* Garante que o H1 dentro da app-bar seja branco */
+        }
+        .app-bar .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .app-bar .user-info strong {
+            margin-right: 15px;
+        }
+        .app-bar .user-info button {
+            background-color: transparent; /* Botões transparentes na app-bar */
+            color: white;
+            box-shadow: none;
+            text-transform: none; /* Não precisa de uppercase para botões de texto */
+            padding: 8px 12px;
+        }
+        .app-bar .user-info button:hover {
+            background-color: rgba(255,255,255,0.1); /* Leve destaque no hover */
+        } 

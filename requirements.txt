@@ -1,6 +1,6 @@
 annotated-types==0.7.0
 anyio==4.9.0
-bcrypt==4.3.0
+bcrypt==4.0.1
 certifi==2025.4.26
 charset-normalizer==3.4.2
 click==8.1.8
@@ -39,3 +39,8 @@ typing_extensions==4.13.2
 tzdata==2025.2
 urllib3==2.4.0
 uvicorn==0.34.3
+httpx
+
+# Novas dependências para WordComplexityAnalyzer
+nltk
+textstat

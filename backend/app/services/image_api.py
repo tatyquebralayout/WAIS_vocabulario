@@ -1,27 +1,29 @@
 # backend/app/services/image_api.py
 import os
-import requests
+import httpx
 from dotenv import load_dotenv
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Carrega variáveis do .env localizado em Palavras_project/backend/.env
 # __file__ é Palavras_project/backend/app/services/image_api.py
 # Queremos Palavras_project/backend/.env
 dotenv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 load_dotenv(dotenv_path=dotenv_path)
-print(f"Tentando carregar .env de: {dotenv_path}") # Para depuração
 
 PIXABAY_API_KEY = os.getenv("PIXABAY_API_KEY")
 # Para depuração, vamos verificar se a chave foi carregada
-if PIXABAY_API_KEY:
-    print("Chave PIXABAY_API_KEY carregada com sucesso.")
+if not PIXABAY_API_KEY:
+    logger.error("CRÍTICO: Chave da API do Pixabay (PIXABAY_API_KEY) não está configurada.")
 else:
-    print("ERRO: Chave PIXABAY_API_KEY não encontrada após carregar o .env.")
+    logger.info("Chave PIXABAY_API_KEY carregada.")
 
 PIXABAY_API_URL = "https://pixabay.com/api/"
 
-def get_image_for_word(word: str, lang: str = "pt", image_type: str = "photo", per_page: int = 3) -> str | None:
+async def _get_image_for_word_func(word: str, lang: str = "pt", image_type: str = "photo", per_page: int = 3) -> str | None:
     """
-    Busca uma imagem ilustrativa para a palavra no Pixabay.
+    Busca uma imagem ilustrativa para a palavra no Pixabay de forma assíncrona.
 
     Args:
         word (str): A palavra para buscar.
@@ -33,7 +35,9 @@ def get_image_for_word(word: str, lang: str = "pt", image_type: str = "photo", p
         str | None: A URL da imagem (webformatURL) ou None se não encontrada/erro.
     """
     if not PIXABAY_API_KEY:
-        print("ERRO: Chave da API do Pixabay (PIXABAY_API_KEY) não está configurada no arquivo .env.")
+        logger.error("API do Pixabay não pode ser usada: chave não configurada.")
+        return None
+    if not word:
         return None
 
     params = {
@@ -47,46 +51,46 @@ def get_image_for_word(word: str, lang: str = "pt", image_type: str = "photo", p
     }
 
     try:
-        response = requests.get(PIXABAY_API_URL, params=params)
-        response.raise_for_status()  # Levanta um erro HTTP para status ruins (4xx ou 5xx)
-        
-        data = response.json()
-        
-        if data['hits'] and len(data['hits']) > 0:
-            # Retorna a URL da imagem de tamanho médio da primeira imagem encontrada
-            # 'webformatURL' é uma boa escolha para exibição geral.
-            # Você poderia também pegar 'largeImageURL' se precisar de maior resolução.
-            return data['hits'][0]['webformatURL']
-        else:
-            print(f"Nenhuma imagem encontrada para '{word}' no Pixabay com os filtros aplicados.")
-            return None
+        async with httpx.AsyncClient() as client:
+            response = await client.get(PIXABAY_API_URL, params=params)
+            response.raise_for_status()
+            data = response.json()
             
-    except requests.exceptions.RequestException as e:
-        print(f"Erro na requisição à API do Pixabay: {e}")
+            if data.get('hits') and len(data['hits']) > 0:
+                image_url = data['hits'][0].get('webformatURL')
+                if image_url:
+                    logger.info(f"Imagem encontrada para '{word}': {image_url}")
+                    return image_url
+                else:
+                    logger.warning(f"Campo 'webformatURL' não encontrado no hit para '{word}': {data['hits'][0]}")
+                    return None
+            else:
+                logger.info(f"Nenhuma imagem encontrada para '{word}' no Pixabay com filtros: lang={lang}, type={image_type}")
+                return None
+            
+    except httpx.HTTPStatusError as e_http:
+        logger.error(f"Erro HTTP ao buscar imagem para '{word}': {e_http.response.status_code} - {e_http.response.text}")
         return None
-    except KeyError as e:
-        print(f"Erro ao processar a resposta JSON do Pixabay (campo faltando: {e}). Resposta: {response.text}")
+    except httpx.RequestError as e_req:
+        logger.error(f"Erro de requisição à API do Pixabay para '{word}': {e_req}")
         return None
-    except Exception as e:
-        print(f"Ocorreu um erro inesperado ao buscar imagem no Pixabay: {e}")
+    except Exception as e_gen: # Captura outras exceções como JSONDecodeError se a resposta não for JSON válido
+        logger.error(f"Erro inesperado ao buscar imagem no Pixabay para '{word}': {e_gen}", exc_info=True)
         return None
 
-# Exemplo de como usar (você chamaria isso de outro lugar no seu backend):
-if __name__ == "__main__":
-    # Crie um arquivo .env na raiz do PROJETO (Palavras_project/.env) com:
-    # PIXABAY_API_KEY=SUA_CHAVE_REAL_AQUI
-    
-    termo_busca = "elefante"
-    url_imagem = get_image_for_word(termo_busca)
-    
-    if url_imagem:
-        print(f"Imagem para '{termo_busca}': {url_imagem}")
-    else:
-        print(f"Não foi possível encontrar imagem para '{termo_busca}'.")
+class ImageAPI:
+    async def get_image_for_word(self, word: str, lang: str = "pt", image_type: str = "photo", per_page: int = 3) -> str | None:
+        return await _get_image_for_word_func(word, lang, image_type, per_page)
 
-    termo_busca_inexistente = "xjqkbrz"
-    url_imagem_inexistente = get_image_for_word(termo_busca_inexistente)
-    if url_imagem_inexistente:
-        print(f"Imagem para '{termo_busca_inexistente}': {url_imagem_inexistente}")
-    else:
-        print(f"Não foi possível encontrar imagem para '{termo_busca_inexistente}'.") 
+# Exemplo de uso assíncrono
+# import asyncio
+# async def main():
+#     termo_busca = "gato"
+#     url_imagem = await get_image_for_word(termo_busca)
+#     if url_imagem:
+#         print(f"Imagem para '{termo_busca}': {url_imagem}")
+#     else:
+#         print(f"Não foi possível encontrar imagem para '{termo_busca}'.")
+# if __name__ == "__main__":
+#     logging.basicConfig(level=logging.INFO) # Configurar logging para ver os logs do serviço
+#     asyncio.run(main()) 

@@ -1,76 +1,88 @@
 # backend/app/schemas.py
-from pydantic import BaseModel, HttpUrl
-from typing import Optional
+from pydantic import BaseModel, HttpUrl, Field
+from typing import Optional, List, Dict, Any
 
-class WordBase(BaseModel):
+# Schema para o detalhamento das métricas de complexidade (usado em WordInfoResponse)
+class ComplexityBreakdownSchema(BaseModel):
+    lexical_length: int
+    syllabic_complexity: int
+    morphological_density: float
+    semantic_abstraction: float
+    definition_complexity: float
+    # Não incluímos o composite_score aqui pois ele já está no nível principal do WordInfoResponse
+    model_config = {
+        "from_attributes": True
+    }
+
+# Schema para os metadados de processamento (usado em WordInfoResponse)
+class ProcessingMetadataSchema(BaseModel):
+    analysis_timestamp: float
+    definition_available: bool
+    image_available: bool
+    audio_available: bool
+    cache_hit: bool # Para o cache de complexidade
+    complexity_method: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
+# Schema de resposta ajustado para o endpoint /word_info/{word_text}
+class WordInfoResponse(BaseModel):
     text: str
-    difficulty_level: Optional[int] = None # Permitir que seja opcional na base
-    definition: Optional[str] = None # Adicionar definição
-
-class WordCreate(WordBase):
-    difficulty_level: int # Exigir ao criar, ou definir um padrão se apropriado
-    definition: Optional[str] = None # Permitir opcional na criação, será preenchido depois
-
-class Word(WordBase):
-    id: int
-    difficulty_level: Optional[int] # Pode ser None se nullable=True no modelo
-    definition: Optional[str] = None # Adicionar definição também aqui
-    # Se você for incluir definição, imagem e áudio direto do DB para este schema,
-    # adicione os campos aqui. Por ora, vou manter simples como no seu exemplo.
-
-    class Config:
-        from_attributes = True
-
-class WordData(BaseModel):
-    word: str
     definition: str
-    image_url: Optional[HttpUrl] = None # Mantido como HttpUrl se vier de uma URL externa válida
-    audio_url: Optional[str] = None    # Alterado para str, pois é um caminho/URL relativa gerada localmente
+    image_url: Optional[str] = None
+    audio_url: Optional[str] = None
+    inferred_complexity_score: float = Field(..., description="Score de complexidade composto (0-10)")
+    difficulty_level: str = Field(..., description="Rótulo de dificuldade inferido (ex: fácil, média, difícil)")
+    complexity_metrics: ComplexityBreakdownSchema # Usando o novo schema para o detalhamento
+    processing_metadata: ProcessingMetadataSchema # Usando o novo schema para metadados
 
-    # Não precisa de orm_mode aqui se não for diretamente de um objeto ORM completo com todos esses campos
+    model_config = {
+        "from_attributes": True 
+    }
 
 class UserBase(BaseModel):
     username: str
 
 class UserCreate(UserBase):
-    password: str # Campo para a senha em texto plano na criação
+    password: str
 
 class User(UserBase):
     id: int
-    # items: list[Item] = [] # Exemplo se houvesse relação com Itens
+    is_admin: bool
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class UserProgressBase(BaseModel):
-    correct_attempts: Optional[int] = 0
-    total_attempts: Optional[int] = 0
-    average_time_seconds: Optional[float] = 0.0
+    word_text: str # Alterado de word_id
+    correct_attempts: int
+    total_attempts: int
+    average_time_seconds: float
 
 class UserProgressCreate(UserProgressBase):
-    word_id: int # Necessário ao criar um progresso
-    # user_id será pego do usuário autenticado, por exemplo
+    pass
 
 class UserProgress(UserProgressBase):
     id: int
     user_id: int
-    word_id: int
-    word: Word # Para mostrar informações da palavra no progresso
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
 
-class WordInput(BaseModel):
+class WordInput(BaseModel): # Este pode ser usado para o novo endpoint se o input for um JSON
     word_text: str
 
 class ExerciseSubmissionData(BaseModel):
-    user_id: int
     word_text: str
-    accuracy: float  # Ex: 0.0 a 1.0 (ou 0 para incorreto, 1 para correto)
-    time_taken_seconds: float # Tempo que o usuário levou para responder
+    accuracy: float
+    time_taken_seconds: float
 
 class NextExerciseSuggestion(BaseModel):
-    suggested_word: Optional[Word] = None
+    suggested_word_text: Optional[str] = None # Alterado de suggested_word: Optional[Word]
     message: str
 
 # Schemas para autenticação
@@ -83,51 +95,45 @@ class TokenData(BaseModel):
 
 # Schema para o exercício de múltipla escolha
 class MultipleChoiceOption(BaseModel):
-    word_id: int # Para identificar a palavra se necessário, mas não mostrar ao usuário
+    word_text: str # Alterado de word_id
     definition: str
 
 class MultipleChoiceExercise(BaseModel):
-    target_word_text: str
-    target_word_id: int
-    options: list[MultipleChoiceOption] # Incluirá a definição correta + N incorretas, embaralhadas
-    message: Optional[str] = None 
+    target_word_text: str # target_word_id removido
+    options: list[MultipleChoiceOption]
+    message: Optional[str] = None
 
 # Schemas para o Relatório de Progresso do Usuário
 class WordPerformance(BaseModel):
     word_text: str
     accuracy: float
-    total_attempts: int
-    average_time: float
+    attempts: int
 
 class ProgressPoint(BaseModel):
-    # Para simplicidade, usaremos o ID do progresso como uma espécie de "tempo"
-    # Em um sistema real, seria melhor ter um timestamp no UserProgress
-    progress_id_or_timestamp: int 
-    accuracy_at_point: float
+    progress_id_or_timestamp: str 
+    accuracy_at_point: float 
     cumulative_words_practiced: int
 
 class UserProgressReport(BaseModel):
     total_words_attempted_unique: int
     overall_accuracy: float
-    average_time_per_attempt: float # Média de todos os average_time_seconds dos UserProgress
-    progress_trend: list[ProgressPoint] = []
-    # top_challenging_words: list[WordPerformance] = [] # Palavras com menor acurácia
-    # top_mastered_words: list[WordPerformance] = [] # Palavras com alta acurácia e múltiplas tentativas
-    message: Optional[str] = None 
+    average_time_per_attempt: float
+    progress_trend: list[ProgressPoint]
+    message: Optional[str] = None
 
 # Schemas para o Exercício de Arrastar e Soltar (Parear Palavra-Definição)
-class DraggableItem(BaseModel): # Item que será arrastado (ex: uma definição)
-    id: str # Um ID único para o item arrastável (pode ser o word_id se for uma definição)
-    content: str # O texto da definição
+class DraggableItem(BaseModel):
+    id: str 
+    content: str 
 
-class DropZone(BaseModel): # Zona onde o item será solto (ex: uma palavra)
-    id: str # Um ID único para a zona (o word_id)
-    content: str # O texto da palavra
-    correct_draggable_id: str # O ID do DraggableItem que pertence aqui
+class DropZone(BaseModel):
+    id: str 
+    content: str 
+    correct_draggable_id: str
 
 class DragDropMatchExercise(BaseModel):
-    exercise_id: str = "word_definition_match" # Tipo de exercício
     instruction: str
-    draggable_items: list[DraggableItem] # Lista de definições (embaralhadas)
-    drop_zones: list[DropZone] # Lista de palavras (ordem fixa ou embaralhada)
+    draggable_items: list[DraggableItem]
+    drop_zones: list[DropZone]
+    exercise_id: str = "word_definition_match"
     message: Optional[str] = None 
