@@ -9,7 +9,7 @@ from .services.tts_service import TTSService
 
 # Importações do endpoint de informações da palavra
 from .word_info_endpoint import router as word_info_router
-from .word_info_endpoint import WordInfoService, configure_local_word_info_service
+from .word_info_endpoint import WordInfoService, configure_word_info_service
 
 # Definição do diretório de arquivos estáticos para ser usado pelo WordInfoService
 # e potencialmente por main.py para montar os arquivos estáticos.
@@ -61,7 +61,7 @@ def create_app_instance() -> FastAPI:
     )
 
     # Configurar o router de informações de palavras com a instância do serviço
-    configure_local_word_info_service(word_info_service_instance)
+    configure_word_info_service(word_info_service_instance)
     logger.info("WordInfoService configurado e injetado no word_info_router.")
 
     # Incluir o router de informações de palavras na aplicação

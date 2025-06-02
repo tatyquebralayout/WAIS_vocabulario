@@ -21,6 +21,12 @@ from .core.config import ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
 # Importar de app_config
 from .app_config import create_app_instance, STATIC_FILES_DIR
 
+# Importar o novo router de exercícios
+from .api import exercises
+
+# Incluir o novo router de palavras
+from .api import words
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -179,37 +185,22 @@ def trigger_model_training_legacy(
 
 app.include_router(admin_router)
 
-exercise_router = APIRouter(prefix="/api/v1/exercises", tags=["Exercises"])
+# Remover o router placeholder existente e incluir o novo
+# exercise_router = APIRouter(prefix="/api/v1/exercises", tags=["Exercises"])
+# @exercise_router.get("/next_suggestion/me", response_model=schemas.NextExerciseSuggestion)
+# def get_next_exercise_legacy(...):
+#    ...
+# @exercise_router.get("/multiple_choice/{word_text}", response_model=schemas.MultipleChoiceExercise)
+# async def get_multiple_choice_exercise_legacy(...):
+#    ...
+# @exercise_router.get("/drag_drop_match/", response_model=schemas.DragDropMatchExercise)
+# async def get_drag_drop_exercise_legacy(...):
+#    ...
 
-@exercise_router.get("/next_suggestion/me", response_model=schemas.NextExerciseSuggestion)
-def get_next_exercise_legacy(current_user: models.User = Depends(get_current_active_user)):
-    logger.info(f"Usuário {current_user.username} solicitou sugestão de próximo exercício.")
-    return schemas.NextExerciseSuggestion(
-        suggested_word_text=None,
-        message="Funcionalidade de sugestao de proximo exercicio em desenvolvimento."
-    )
+app.include_router(exercises.router, prefix="/api/v1/exercises") # Incluir o novo router com prefixo
 
-@exercise_router.get("/multiple_choice/{word_text}", response_model=schemas.MultipleChoiceExercise)
-async def get_multiple_choice_exercise_legacy(
-    word_text: str,
-    request: Request,
-    current_user: models.User = Depends(get_current_active_user)
-):
-    normalized_target_word = word_text.lower().strip()
-    if not normalized_target_word:
-        logger.warning(f"Tentativa de obter exercício de múltipla escolha com palavra vazia pelo usuário {current_user.username}.")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Target word text cannot be empty.")
-    logger.info(f"Usuário {current_user.username} solicitou exercício de múltipla escolha para '{normalized_target_word}'.")
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Funcionalidade de exercicio de multipla escolha em desenvolvimento.")
-
-@exercise_router.get("/drag_drop_match/", response_model=schemas.DragDropMatchExercise)
-async def get_drag_drop_exercise_legacy(
-    current_user: models.User = Depends(get_current_active_user)
-):
-    logger.info(f"Usuário {current_user.username} solicitou exercício de arrastar e soltar.")
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Funcionalidade de exercicio de arrastar e soltar em desenvolvimento.")
-
-app.include_router(exercise_router)
+# Incluir o novo router de palavras
+app.include_router(words.router, prefix="/api/v1/words") # Incluir o router de palavras com prefixo
 
 @app.get("/app", response_class=HTMLResponse)
 async def main_app_page(request: Request):
@@ -226,6 +217,19 @@ async def get_dictation_partial(request: Request):
 @app.get("/app/partials/drag_drop", response_class=HTMLResponse)
 async def get_drag_drop_partial(request: Request):
     return templates.TemplateResponse("partials/_drag_drop_exercise_partial.html", {"request": request})
+
+# Endpoints para os novos templates parciais de exercício
+@app.get("/app/partials/mcq_image", response_class=HTMLResponse)
+async def get_mcq_image_partial(request: Request):
+    return templates.TemplateResponse("partials/_mcq_image_exercise_partial.html", {"request": request})
+
+@app.get("/app/partials/define_word", response_class=HTMLResponse)
+async def get_define_word_partial(request: Request):
+    return templates.TemplateResponse("partials/_define_word_exercise_partial.html", {"request": request})
+
+@app.get("/app/partials/complete_sentence", response_class=HTMLResponse)
+async def get_complete_sentence_partial(request: Request):
+    return templates.TemplateResponse("partials/_complete_sentence_exercise_partial.html", {"request": request})
 
 @app.get("/", response_class=JSONResponse)
 def read_root_legacy():

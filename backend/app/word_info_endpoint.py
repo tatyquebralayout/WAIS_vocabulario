@@ -38,7 +38,7 @@ class WordInfoService:
 
     async def get_word_info(self, word_text: str) -> schemas.WordInfoResponse:
         """
-        Processamento principal - execução paralela otimizada.
+        Endpoint-facing method to get word info, including URL construction.
         """
         original_word_text = word_text # Manter o texto original para a resposta
         normalized_word_text = word_text.strip().lower()
@@ -48,91 +48,123 @@ class WordInfoService:
                 self.logger.warning(f"Palavra inválida fornecida: '{original_word_text}'")
                 raise HTTPException(status_code=400, detail=f"Palavra inválida: '{original_word_text}'. Deve ser alfabética e ter entre 2 e 30 caracteres.")
             
-            self.logger.info(f"Iniciando processamento para: '{normalized_word_text}'")
+            self.logger.info(f"Iniciando processamento para: '{normalized_word_text}' (via endpoint)")
             
-            definition_task = self._get_definition_safe(normalized_word_text)
-            image_task = self._get_image_safe(normalized_word_text)
-            audio_base_path_str = await asyncio.to_thread(self._get_audio_base_path) # síncrono, em thread
-
-            results = await asyncio.gather(
-                definition_task, 
-                image_task,
-                return_exceptions=True
-            )
+            # Chamada para o novo método interno para obter os dados base
+            word_data_internal = await self._get_word_info_data_internal(normalized_word_text)
             
-            definition_res = results[0]
-            image_url_res = results[1]
-
-            definition = "" 
-            if isinstance(definition_res, Exception):
-                self.logger.error(f"Erro ao obter definição para '{normalized_word_text}': {definition_res}", exc_info=isinstance(definition_res, Exception))
-            elif definition_res:
-                definition = definition_res
-            
-            image_url = None
-            if isinstance(image_url_res, Exception):
-                self.logger.error(f"Erro ao obter imagem para '{normalized_word_text}': {image_url_res}", exc_info=isinstance(image_url_res, Exception))
-            elif image_url_res:
-                image_url = image_url_res
-            
+            # Constrói a URL do áudio AQUI, usando as informações da request
             audio_url = None
-            if audio_base_path_str: # Prossiga com áudio apenas se o path base foi obtido
-                try:
-                    # Geração de áudio é assíncrona e usa o path base
-                    audio_filename = await self._generate_audio_safe(normalized_word_text, audio_base_path_str)
-                    if audio_filename and self.current_request_base_url and self.current_app_url_path_for:
-                        audio_url = f"{self.current_request_base_url.rstrip('/')}{self.current_app_url_path_for('static', path=f'audio/{audio_filename}')}"
-                        self.logger.info(f"Áudio URL para '{normalized_word_text}': {audio_url}")
-                    elif audio_filename:
-                        self.logger.warning(f"Não foi possível construir URL completa para o áudio '{audio_filename}' de '{normalized_word_text}' (request_base_url ou app_url_path_for não definidos no serviço)")
+            # Obter o nome do ficheiro de áudio de forma segura
+            audio_filename = word_data_internal.get('audio_filename')
 
-                except Exception as e:
-                    self.logger.error(f"Erro ao gerar áudio para '{normalized_word_text}': {e}", exc_info=True)
-            
-            self.logger.debug(f"Analisando complexidade para '{normalized_word_text}' com definição: '{definition[:50]}...'")
-            complexity_analysis_metrics = self._analyze_complexity_cached(normalized_word_text, definition)
-            difficulty_level_str = self.complexity_analyzer.get_difficulty_level_from_metrics(complexity_analysis_metrics)
-            
-            current_time = asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else 0.0
-            processing_metadata_dict = {
-                'analysis_timestamp': current_time,
-                'definition_available': bool(definition and definition != "Definição não disponível."),
-                'image_available': bool(image_url),
-                'audio_available': bool(audio_url),
-                'cache_hit': self._last_cache_hit, 
-                'complexity_method': 'neuropsychological_inference'
-            }
-            
-            complexity_breakdown = schemas.ComplexityBreakdownSchema(
-                lexical_length=complexity_analysis_metrics.lexical_length,
-                syllabic_complexity=complexity_analysis_metrics.syllabic_complexity,
-                morphological_density=complexity_analysis_metrics.morphological_density,
-                semantic_abstraction=complexity_analysis_metrics.semantic_abstraction,
-                definition_complexity=complexity_analysis_metrics.definition_complexity
-            )
+            # Verificar se o nome do ficheiro e as dependências da request estão disponíveis
+            if audio_filename and self.current_request_base_url and self.current_app_url_path_for:
+                 try:
+                      # Construir o caminho estático para o áudio
+                      audio_path = f'audio/{audio_filename}'
+                      # Construir a URL completa usando as informações da request e o caminho estático
+                      audio_url = f"{self.current_request_base_url.rstrip('/')}{self.current_app_url_path_for('static', path=audio_path)}"
+                      self.logger.info(f"Áudio URL para '{normalized_word_text}' (endpoint): {audio_url}")
+                 except Exception as e:
+                      self.logger.error(f"Erro ao construir URL de áudio para '{normalized_word_text}': {e}", exc_info=True)
+            elif audio_filename:
+                # Caso o nome do ficheiro exista mas as informações da request não
+                self.logger.warning(f"Não foi possível construir URL completa para o áudio '{audio_filename}' de '{normalized_word_text}' (request_base_url ou app_url_path_for não definidos no serviço)")
 
-            final_definition = definition if definition else "Definição não disponível."
-
+            # Monta a resposta final para o endpoint
             response = schemas.WordInfoResponse(
                 text=original_word_text,
-                definition=final_definition,
-                image_url=image_url,
-                audio_url=audio_url,
-                inferred_complexity_score=complexity_analysis_metrics.composite_score,
-                complexity_metrics=complexity_breakdown,
-                difficulty_level=difficulty_level_str,
-                processing_metadata=schemas.ProcessingMetadataSchema(**processing_metadata_dict)
+                definition=word_data_internal['definition'],
+                image_url=word_data_internal['image_url'],
+                audio_url=audio_url, # Usar a URL construída
+                inferred_complexity_score=word_data_internal['complexity_metrics'].composite_score,
+                complexity_metrics=schemas.ComplexityBreakdownSchema(
+                    lexical_length=word_data_internal['complexity_metrics'].lexical_length,
+                    syllabic_complexity=word_data_internal['complexity_metrics'].syllabic_complexity,
+                    morphological_density=word_data_internal['complexity_metrics'].morphological_density,
+                    semantic_abstraction=word_data_internal['complexity_metrics'].semantic_abstraction,
+                    definition_complexity=word_data_internal['complexity_metrics'].definition_complexity
+                ),
+                difficulty_level=self.complexity_analyzer.get_difficulty_level_from_metrics(word_data_internal['complexity_metrics']),
+                processing_metadata=schemas.ProcessingMetadataSchema(**word_data_internal['processing_metadata'])
             )
             
-            self.logger.info(f"Processamento completo para '{normalized_word_text}'. Score: {complexity_analysis_metrics.composite_score:.2f}, Nível: {difficulty_level_str}")
+            self.logger.info(f"Resposta endpoint completa para '{normalized_word_text}'.")
             return response
             
         except HTTPException as he:
-            self.logger.error(f"HTTPException durante o processamento de '{original_word_text}': {he.detail}", exc_info=True)
+            self.logger.error(f"HTTPException durante o processamento de '{original_word_text}' (endpoint): {he.detail}", exc_info=True)
             raise he
         except Exception as e:
-            self.logger.critical(f"Erro crítico não tratado no processamento de '{original_word_text}': {e}", exc_info=True)
+            self.logger.critical(f"Erro crítico não tratado no endpoint '{original_word_text}': {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Erro interno no servidor ao processar a palavra '{original_word_text}'. Contate o suporte.")
+
+    async def _get_word_info_data_internal(self, normalized_word_text: str) -> Dict[str, Any]:
+        """
+        Obtém dados da palavra (definição, imagem URL, áudio filename, complexidade) para uso interno.
+        Não constrói URLs completas nem usa Request.
+        """
+        self.logger.info(f"Iniciando processamento interno para: '{normalized_word_text}'")
+
+        definition_task = self._get_definition_safe(normalized_word_text)
+        image_task = self._get_image_safe(normalized_word_text)
+        audio_base_path_str = await asyncio.to_thread(self._get_audio_base_path) # síncrono, em thread
+
+        results = await asyncio.gather(
+            definition_task,
+            image_task,
+            return_exceptions=True
+        )
+        
+        definition_res = results[0]
+        image_url_res = results[1]
+        
+        definition = "" 
+        if isinstance(definition_res, Exception):
+            self.logger.error(f"Erro (interno) ao obter definição para '{normalized_word_text}': {definition_res}", exc_info=isinstance(definition_res, Exception))
+        elif definition_res:
+            definition = definition_res
+
+        image_url = None
+        if isinstance(image_url_res, Exception):
+             self.logger.error(f"Erro (interno) ao obter imagem para '{normalized_word_text}': {image_url_res}", exc_info=isinstance(image_url_res, Exception))
+        elif image_url_res:
+             image_url = image_url_res
+
+        audio_filename = None
+        if audio_base_path_str: # Prossiga com áudio apenas se o path base foi obtido
+            try:
+                # Geração de áudio é assíncrona e usa o path base, retorna apenas o nome do arquivo
+                audio_filename = await self._generate_audio_safe(normalized_word_text, audio_base_path_str)
+                if audio_filename:
+                     self.logger.info(f"Áudio filename gerado para '{normalized_word_text}' (interno): {audio_filename}")
+
+            except Exception as e:
+                self.logger.error(f"Erro (interno) ao gerar áudio para '{normalized_word_text}': {e}", exc_info=True)
+
+        self.logger.debug(f"Analisando complexidade (interno) para '{normalized_word_text}' com definição: '{definition[:50]}...'")
+        complexity_analysis_metrics = self._analyze_complexity_cached(normalized_word_text, definition)
+
+        current_time = asyncio.get_event_loop().time() if asyncio.get_event_loop().is_running() else 0.0
+        processing_metadata_dict = {
+            'analysis_timestamp': current_time,
+            'definition_available': bool(definition and definition != "Definição não disponível."),
+            'image_available': bool(image_url),
+            'audio_available': bool(audio_filename), # Verifica se o filename foi gerado
+            'cache_hit': self._last_cache_hit, 
+            'complexity_method': 'neuropsychological_inference'
+        }
+
+        # Retorna um dicionário com os dados relevantes
+        return {
+            'text': normalized_word_text,
+            'definition': definition if definition else "Definição não disponível.",
+            'image_url': image_url, # Retorna a URL da imagem, se disponível (pode ser útil internamente)
+            'audio_filename': audio_filename, # Retorna apenas o nome do arquivo de áudio
+            'complexity_metrics': complexity_analysis_metrics,
+            'processing_metadata': processing_metadata_dict
+        }
 
     def _get_audio_base_path(self) -> str:
         audio_dir = os.path.join(self.static_files_dir, "audio")
