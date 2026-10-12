@@ -1,5 +1,9 @@
 # WAIS Vocabulário
 
+<a href="https://tatyquebralayout.github.io/WAIS_vocabulario/"><img src="preview.webp" width="360" alt="Prévia: quatro rodadas do treino, em que uma palavra aparece, uma definição é escolhida e o site marca certo ou errado e explica a resposta · Preview: four practice rounds where a word appears, a definition is picked and the site marks it right or wrong and explains"></a>
+
+### [▶ Treinar no navegador · Practice in the browser](https://tatyquebralayout.github.io/WAIS_vocabulario/)
+
 **Um app que escolhe o próximo exercício de vocabulário pra você, olhando o que você já sabe, o quanto está cansado e onde costuma errar.**
 
 Inspirado no subteste de vocabulário da Escala Wechsler (WAIS), mas feito pra praticar e aprender, não pra avaliar. Cada palavra vem com definição, imagem e pronúncia em áudio, e o sistema mede a dificuldade de cada uma em tempo real.
@@ -7,7 +11,24 @@ Inspirado no subteste de vocabulário da Escala Wechsler (WAIS), mas feito pra p
 > 🇺🇸 **In English:** an adaptive vocabulary practice web app inspired by the vocabulary subtest of the WAIS. Built with Python and FastAPI, it looks up words in external APIs (definition, image and audio), estimates each word's difficulty, and picks the next exercise based on the learner's progress. It needs a server to run; see the setup steps below.
 
 **Exercícios:** múltipla escolha, múltipla escolha com imagem, ditado, arrastar, completar frase e definir a palavra.
-**Stack:** Python, FastAPI, SQLAlchemy e SQLite. Precisa de servidor, então ainda não tem demo ao vivo; veja [como executar](#como-executar-a-aplicação).
+**Stack:** Python, FastAPI, SQLAlchemy e SQLite. O app completo precisa de servidor; veja [como executar](#como-executar-a-aplicação).
+
+## Treine no navegador · Practice in the browser
+
+**[Ver ao vivo · Live demo](https://tatyquebralayout.github.io/WAIS_vocabulario/)**
+
+A pasta [`docs/`](docs/) tem uma versão do treino que roda inteira no navegador, sem servidor e sem instalar nada. Ela tem dois modos:
+
+- **Escolher:** você vê uma palavra e escolhe a definição certa entre quatro. O site marca o acerto ou o erro e explica a resposta.
+- **Escrever:** você escreve a definição com as suas palavras, compara com a resposta e se dá uma nota de 0 a 2.
+
+A dificuldade sobe conforme você acerta, com a mesma lógica adaptativa do código em Python (complexidade da palavra, zona de desenvolvimento proximal e seleção epsilon-greedy), portada para JavaScript em [`docs/nucleo.js`](docs/nucleo.js). Como o app em Python busca as palavras em serviços de fora, o site usa uma lista própria de 39 palavras, em [`docs/palavras.js`](docs/palavras.js). Nenhuma delas vem do teste WAIS. O progresso fica salvo só no seu navegador, e dá para usar tudo pelo teclado.
+
+> 🇺🇸 The [`docs/`](docs/) folder holds a version of the practice that runs entirely in the browser, with nothing to install. Pick the right definition out of four, or write your own and grade yourself from 0 to 2. Difficulty adapts as you go, using the same logic as the Python code, ported to JavaScript. It uses its own list of 39 words, none taken from the actual WAIS. Progress is saved only in your browser, and everything works with the keyboard.
+
+**Aviso · Disclaimer:** é um treino de vocabulário, não um teste psicológico, e não tem valor diagnóstico. · This is vocabulary practice, not a psychological test, and has no diagnostic value.
+
+Para rodar localmente · To run it locally: `python -m http.server 8000 --directory docs` e abra · and open `http://localhost:8000`.
 
 ## Sobre o Projeto (Visão Geral Técnica)
 
