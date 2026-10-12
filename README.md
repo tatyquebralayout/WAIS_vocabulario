@@ -1,10 +1,13 @@
+# WAIS Vocabulário
+
+**Um app que escolhe o próximo exercício de vocabulário pra você, olhando o que você já sabe, o quanto está cansado e onde costuma errar.**
+
+Inspirado no subteste de vocabulário da Escala Wechsler (WAIS), mas feito pra praticar e aprender, não pra avaliar. Cada palavra vem com definição, imagem e pronúncia em áudio, e o sistema mede a dificuldade de cada uma em tempo real.
+
 > 🇺🇸 **In English:** an adaptive vocabulary practice web app inspired by the vocabulary subtest of the WAIS. Built with Python and FastAPI, it looks up words in external APIs (definition, image and audio), estimates each word's difficulty, and picks the next exercise based on the learner's progress. It needs a server to run; see the setup steps below.
 
-# WAIS Vocabulário: Expansão e Prática de Vocabulário
-
-**WAIS Vocabulário** é uma aplicação web educacional inspirada nos subtestes de vocabulário frequentemente encontrados em avaliações de inteligência, como a Escala Wechsler de Inteligência para Adultos (WAIS). O projeto visa transcender a simples avaliação, oferecendo uma plataforma interativa e adaptativa onde os usuários podem ativamente **praticar, testar e expandir seu vocabulário**.
-
-A intenção é criar uma ferramenta que não apenas auxilie no aprendizado de novas palavras, mas que também reforce o conhecimento existente através de exercícios variados e feedback, promovendo uma compreensão mais profunda e um uso mais eficaz da linguagem.
+**Exercícios:** múltipla escolha, múltipla escolha com imagem, ditado, arrastar, completar frase e definir a palavra.
+**Stack:** Python, FastAPI, SQLAlchemy e SQLite. Precisa de servidor, então ainda não tem demo ao vivo; veja [como executar](#como-executar-a-aplicação).
 
 ## Sobre o Projeto (Visão Geral Técnica)
 
