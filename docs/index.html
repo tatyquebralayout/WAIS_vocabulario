@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Treino de vocabulário · Tatiana Barros</title>
+<meta name="description" content="Pratique palavras do português: veja a palavra, escolha ou escreva a definição e receba retorno na hora. É um treino, não um teste psicológico.">
+<meta name="author" content="Tatiana Barros">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbfaf6" media="(prefers-color-scheme: light)">
+<link rel="canonical" href="https://tatyquebralayout.github.io/WAIS_vocabulario/">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:site_name" content="Tatiana Barros">
+<meta property="og:title" content="Treino de vocabulário · Tatiana Barros">
+<meta property="og:description" content="Pratique palavras do português: veja a palavra, escolha ou escreva a definição e receba retorno na hora. É um treino, não um teste psicológico.">
+<meta property="og:url" content="https://tatyquebralayout.github.io/WAIS_vocabulario/">
+<meta property="og:image" content="https://tatyquebralayout.github.io/WAIS_vocabulario/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Treino de vocabulário, por Tatiana Barros">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Treino de vocabulário · Tatiana Barros">
+<meta name="twitter:description" content="Pratique palavras do português: veja a palavra, escolha ou escreva a definição e receba retorno na hora. É um treino, não um teste psicológico.">
+<meta name="twitter:image" content="https://tatyquebralayout.github.io/WAIS_vocabulario/og.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="pular" href="#treino">Pular para o treino · Skip to practice</a>
+
+<header class="topo">
+  <p class="sobretitulo">WAIS_vocabulario</p>
+  <h1>Treino de vocabulário <span class="en" lang="en">Vocabulary practice</span></h1>
+  <p class="lead">Veja uma palavra, diga o que ela significa e confira a resposta. O treino escolhe a próxima palavra de acordo com o seu desempenho.</p>
+  <p class="lead en" lang="en">See a Portuguese word, say what it means and check the answer. The practice picks the next word based on how you are doing.</p>
+</header>
+
+<main id="conteudo">
+  <aside class="aviso" aria-labelledby="aviso-titulo">
+    <h2 id="aviso-titulo">Isto é um treino, não um teste <span class="en" lang="en">This is practice, not a test</span></h2>
+    <p>Este site é só para praticar vocabulário. Ele <strong>não é um teste psicológico</strong>, não mede inteligência e <strong>não tem nenhum valor diagnóstico</strong>. As palavras e definições foram escritas para este treino e não fazem parte da Escala Wechsler (WAIS), que só serve de inspiração para o formato.</p>
+    <p lang="en">This site is only for vocabulary practice. It is <strong>not a psychological test</strong>, does not measure intelligence and has <strong>no diagnostic value</strong>. The words and definitions were written for this practice and are not part of the Wechsler scale (WAIS), which only inspires the format.</p>
+  </aside>
+
+  <section id="treino" class="treino" aria-labelledby="palavra" tabindex="-1">
+    <fieldset class="modos">
+      <legend>Modo <span lang="en">· Mode</span></legend>
+      <label><input type="radio" name="modo" value="MCQ_definition" checked> Escolher a definição <span class="en" lang="en">Choose the definition</span></label>
+      <label><input type="radio" name="modo" value="define_word"> Escrever a definição <span class="en" lang="en">Write the definition</span></label>
+    </fieldset>
+
+    <div class="cartao">
+      <p class="rotulo" id="rotulo-palavra">O que significa <span lang="en">· What does it mean</span></p>
+      <h2 id="palavra" class="palavra" tabindex="-1" aria-describedby="rotulo-palavra">…</h2>
+
+      <form id="form-escolha" class="exercicio" hidden>
+        <fieldset>
+          <legend class="visualmente-oculto">Escolha a definição correta · Choose the correct definition</legend>
+          <div id="opcoes" class="opcoes"></div>
+        </fieldset>
+        <button type="submit" class="botao">Conferir <span lang="en">· Check</span></button>
+      </form>
+
+      <form id="form-escrita" class="exercicio" hidden>
+        <label for="resposta">Sua definição <span lang="en">· Your definition</span></label>
+        <textarea id="resposta" rows="3" autocomplete="off" spellcheck="true"></textarea>
+        <button type="submit" class="botao">Ver a definição <span lang="en">· Show the definition</span></button>
+        <div id="autoavaliacao" class="autoavaliacao" hidden>
+          <p id="pergunta-nota">Compare com a definição acima. Como foi? <span lang="en">· Compare with the definition above. How did it go?</span></p>
+          <div class="notas" role="group" aria-labelledby="pergunta-nota">
+            <button type="button" class="botao secundario" data-pontos="2">Acertei · 2 pts <span lang="en">(right)</span></button>
+            <button type="button" class="botao secundario" data-pontos="1">Em parte · 1 pt <span lang="en">(partly)</span></button>
+            <button type="button" class="botao secundario" data-pontos="0">Errei · 0 pts <span lang="en">(wrong)</span></button>
+          </div>
+        </div>
+      </form>
+
+      <div id="retorno" class="retorno" role="status" aria-live="polite"></div>
+
+      <button id="proxima" type="button" class="botao" hidden>Próxima palavra <span lang="en">· Next word</span></button>
+    </div>
+
+    <section class="placar" aria-labelledby="placar-titulo">
+      <h2 id="placar-titulo">Seu treino <span class="en" lang="en">Your practice</span></h2>
+      <dl>
+        <div><dt>Palavras praticadas <span lang="en">· Words practiced</span></dt><dd id="n-palavras">0</dd></div>
+        <div><dt>Respostas certas <span lang="en">· Correct answers</span></dt><dd id="n-certas">0 / 0</dd></div>
+        <div><dt>Sequência de acertos <span lang="en">· Streak</span></dt><dd id="n-sequencia">0</dd></div>
+      </dl>
+      <p class="nota">O progresso fica salvo só neste navegador. <span lang="en">Progress is saved only in this browser.</span></p>
+      <button id="recomecar" type="button" class="botao secundario">Recomeçar do zero <span lang="en">· Start over</span></button>
+    </section>
+  </section>
+
+  <section class="como" aria-labelledby="como-titulo">
+    <h2 id="como-titulo">Como funciona <span class="en" lang="en">How it works</span></h2>
+    <p>Esta é a versão para navegador do app em Python deste repositório. A lógica de adaptação foi portada para JavaScript e roda inteira no seu computador, sem servidor e sem enviar nada para lugar nenhum.</p>
+    <ul>
+      <li><strong>Complexidade da palavra:</strong> combina tamanho, número de sílabas, prefixos e sufixos, abstração e tamanho da definição, como o <code>WordComplexityAnalyzer</code>, mais a raridade da palavra.</li>
+      <li><strong>Próxima palavra:</strong> prioriza palavras um pouco acima do seu nível (zona de desenvolvimento proximal), palavras novas e palavras que você errou, com 10% de escolha aleatória (epsilon-greedy).</li>
+      <li><strong>Pontos:</strong> na escrita, você mesma se avalia com 2, 1 ou 0 pontos. Na escolha, acerto vale 2 e erro vale 0.</li>
+    </ul>
+    <p lang="en">This is the browser version of the Python app in this repository. The adaptive logic was ported to JavaScript and runs entirely on your device, with no server and nothing sent anywhere. Word complexity mixes length, syllables, prefixes and suffixes, abstraction, definition length and word rarity. The next word favors words slightly above your level, new words and words you missed, with 10% random picks (epsilon-greedy). When writing, you rate yourself with 2, 1 or 0 points; when choosing, a right answer is worth 2 and a wrong one 0.</p>
+  </section>
+</main>
+
+<footer class="rodape">
+  <p>Feito por Tatiana Barros <span lang="en">· Made by Tatiana Barros</span></p>
+  <p><a href="https://github.com/tatyquebralayout/WAIS_vocabulario">Código no GitHub <span lang="en">· Source on GitHub</span></a> · Licença MIT <span lang="en">· MIT License</span></p>
+</footer>
+
+<script src="palavras.js" defer></script>
+<script src="nucleo.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>

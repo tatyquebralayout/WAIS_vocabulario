@@ -7,7 +7,19 @@ Inspirado no subteste de vocabulário da Escala Wechsler (WAIS), mas feito pra p
 > 🇺🇸 **In English:** an adaptive vocabulary practice web app inspired by the vocabulary subtest of the WAIS. Built with Python and FastAPI, it looks up words in external APIs (definition, image and audio), estimates each word's difficulty, and picks the next exercise based on the learner's progress. It needs a server to run; see the setup steps below.
 
 **Exercícios:** múltipla escolha, múltipla escolha com imagem, ditado, arrastar, completar frase e definir a palavra.
-**Stack:** Python, FastAPI, SQLAlchemy e SQLite. Precisa de servidor, então ainda não tem demo ao vivo; veja [como executar](#como-executar-a-aplicação).
+**Stack:** Python, FastAPI, SQLAlchemy e SQLite. O app completo precisa de servidor; veja [como executar](#como-executar-a-aplicação).
+
+## Treine no navegador · Practice in the browser
+
+**[Ver ao vivo · Live demo](https://tatyquebralayout.github.io/WAIS_vocabulario/)**
+
+A pasta [`docs/`](docs/) tem uma versão estática do treino, que roda inteira no navegador, sem servidor e sem instalar nada. Você vê uma palavra, escolhe ou escreve a definição e recebe o retorno na hora. A lógica adaptativa do Python (complexidade da palavra, zona de desenvolvimento proximal e seleção epsilon-greedy) foi portada para JavaScript em [`docs/nucleo.js`](docs/nucleo.js), e as palavras ficam em [`docs/palavras.js`](docs/palavras.js).
+
+> 🇺🇸 The [`docs/`](docs/) folder holds a static version of the practice that runs entirely in the browser, with no server and nothing to install. You see a word, choose or write its definition and get instant feedback. The adaptive logic from the Python code was ported to JavaScript.
+
+**Aviso · Disclaimer:** é um treino de vocabulário, não um teste psicológico, e não tem valor diagnóstico. · This is vocabulary practice, not a psychological test, and has no diagnostic value.
+
+Para rodar localmente · To run it locally: `python -m http.server 8000 --directory docs` e abra · and open `http://localhost:8000`.
 
 ## Sobre o Projeto (Visão Geral Técnica)
 
